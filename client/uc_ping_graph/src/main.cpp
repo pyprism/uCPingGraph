@@ -5,18 +5,16 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecureBearSSL.h>
 
-#define LED D0
-
+// update these with values suitable for your network and server
 const char *ssid = "";
 const char *password = "";
-
 const IPAddress remote_ip(1, 1, 1, 1);
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   Serial.setDebugOutput(true);
-  pinMode(LED_BUILTIN, OUTPUT);
+  // pinMode(LED_BUILTIN, OUTPUT);
   delay(10);
   Serial.println();
   Serial.println("Connecting to WiFi");
@@ -32,103 +30,67 @@ void setup() {
   Serial.println();
   Serial.print("WiFi connected with ip ");
   Serial.println(WiFi.localIP());
-
-  Serial.print("Pinging ip ");
-  Serial.println(remote_ip);
-
-  if (Ping.ping(remote_ip)) {
-    Serial.println("Success!!");
-  } else {
-    Serial.println("Error :(");
-  }
 }
 
-void loop() {
+void sendPost(int latency) {
+  const char *serverUrl = "https://postman-echo.com/post";
+  const int capacity = JSON_OBJECT_SIZE(2);
+  StaticJsonDocument<capacity> body;
+  body["ping"] = latency;
+  body["ip"] = WiFi.localIP().toString();
+
+  // send https post request
 
   if ((WiFi.status() == WL_CONNECTED)) {
     std::unique_ptr<BearSSL::WiFiClientSecure> client(
         new BearSSL::WiFiClientSecure);
     client->setInsecure();
     HTTPClient https;
-    digitalWrite(LED_BUILTIN, HIGH);
+    if (https.begin(*client, serverUrl)) {
+      https.addHeader("Content-Type", "application/json");
+      https.addHeader("Accept", "application/json");
+      int httpResponseCode = https.POST(body.as<String>());
 
-    Ping.ping(remote_ip);
-    int avg_time_ms = Ping.averageTime();
-    Serial.println(avg_time_ms);
+      Serial.println(body.as<String>());
 
-    const char *serverUrl = "https://postman-echo.com/get?foo1=bar1&foo2=bar2";
-
-    if (https.begin(*client, serverUrl)) { // HTTPS
-      Serial.print("[HTTPS] GET...\n");
-      // start connection and send HTTP header
-      int httpCode = https.GET();
-      // httpCode will be negative on error
-      if (httpCode > 0) {
-        // HTTP header has been send and Server response header has been handled
-        Serial.printf("[HTTPS] GET... code: %d\n", httpCode);
-        // file found at server
-        if (httpCode == HTTP_CODE_OK ||
-            httpCode == HTTP_CODE_MOVED_PERMANENTLY) {
-          String payload = https.getString();
-          Serial.println(payload);
-        }
+      if (httpResponseCode > 0) {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpResponseCode);
+        String response = https.getString();
+        Serial.println(response);
       } else {
-        Serial.printf("[HTTPS] GET... failed, error: %s\n",
-                      https.errorToString(httpCode).c_str());
+        Serial.print("Error code: ");
+        Serial.println(httpResponseCode);
+        // print http response
+        Serial.println(https.getString());
+        Serial.println(https.errorToString(httpResponseCode).c_str());
       }
-
       https.end();
-      digitalWrite(LED_BUILTIN, LOW);
     } else {
-      Serial.printf("[HTTPS] Unable to connect\n");
+      Serial.println("Error in HTTPS connection");
     }
   }
+}
 
-  // const char *serverUrl = "https://postman-echo.com/post";
-  // const char *serverUrl = "https://postman-echo.com/get?foo1=bar1&foo2=bar2";
-  // const int capacity = JSON_OBJECT_SIZE(3);
-  //  StaticJsonDocument<capacity> body;
+int getPing() {
 
-  // body["ping"] = avg_time_ms;
-  // body["ip"] = WiFi.localIP().toString();
-  // body["mac"] = WiFi.macAddress();
+  if (Ping.ping(remote_ip)) {
+    int avg_time_ms = Ping.averageTime();
+    Serial.println(avg_time_ms);
+    return avg_time_ms;
+  } else {
+    Serial.println("Error");
+    return -1;
+  }
+}
 
-  // send https post request
-  // HTTPClient https;
-  // WiFiClientSecure client;
+void loop() {
 
-  // https->setInsecure();
-
-  // http.begin(client, serverUrl);
-  //  http.addHeader("Content-Type", "application/json");
-  //  http.addHeader("Accept", "application/json");
-  //    http.addHeader("User-Agent", "ESP8266");
-  //     http.addHeader("Connection", "close");
-  //      http.addHeader("Content-Length",
-  //                     measureJson(body) + 1); // +1 for null terminator
-
-  // int httpResponseCode = http.POST(body.as<String>());
-
-  // Serial.println(body.as<String>());
-
-  // if (httpResponseCode > 0) {
-  //   Serial.print("HTTP Response code: ");
-  //   Serial.println(httpResponseCode);
-  //   String response = http.getString();
-  //   Serial.println(response);
-  // } else {
-  //   Serial.print("Error code: ");
-  //   Serial.println(httpResponseCode);
-  //   // print http response
-  //   Serial.println(http.getString());
-  //   Serial.println(http.errorToString(httpResponseCode).c_str());
-  //}
-
-  // http GET request
-  // https.begin(client, serverUrl);
-  // int httpResponseCode = https.GET();
-  // Serial.println(httpResponseCode);
-  // Serial.println(https.errorToString(httpResponseCode).c_str());
-
-  // https.end();
+  int latency = getPing();
+  if (latency == -1) {
+    // TODO: LED blink
+  } else {
+    // led.Update();
+    sendPost(latency);
+  }
 }
