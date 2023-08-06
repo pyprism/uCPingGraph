@@ -16,7 +16,7 @@ func NewRouter() *gin.Engine {
 
 	router := gin.New()
 	router.Static("/static", "./static")
-	router.LoadHTMLGlob("templates/*.html")
+	//router.LoadHTMLGlob("templates/*.html")
 
 	if os.Getenv("DEBUG") != "True" {
 		gin.SetMode(gin.ReleaseMode)
@@ -24,7 +24,7 @@ func NewRouter() *gin.Engine {
 		router.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 		router.Use(ginzap.RecoveryWithZap(logger, true))
 	}
-	
+
 	router.SetTrustedProxies([]string{"127.0.0.1"})
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
