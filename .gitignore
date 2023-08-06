@@ -22,3 +22,4 @@ go.work
 
 .idea/
 server/.env
+server/tmp/*
