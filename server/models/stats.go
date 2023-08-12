@@ -8,6 +8,6 @@ type Stat struct {
 	NetworkID int
 	Network   Network
 	DeviceID  int
-	Device    Device `gorm:"foreignKey:DeviceID;references:ID"`
-	Latency   int    `gorm:"not null"`
+	Device    Device
+	Latency   int `gorm:"not null"`
 }
