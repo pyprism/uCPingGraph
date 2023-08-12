@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-var rootCmd = &cobra.Command{
+var RootCmd = &cobra.Command{
 	Use:   "pinggraph",
 	Short: "Simple ping graphing tool",
 	Long:  `uCPingGraph is a simple ping graphing tool that allows you to monitor the ping of a host over time.`,
@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := RootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
