@@ -19,3 +19,20 @@ func (n *Network) CreateNetwork(name string) (error, uint) {
 	}
 	return nil, n.ID
 }
+
+func (n *Network) GetNetworkIdByName(name string) (error, uint) {
+	err := DB.Where("name = ?", name).First(n)
+	if err.Error != nil {
+		return err.Error, 0
+	}
+	return nil, n.ID
+}
+
+func (n *Network) GetAllNetwork() (error, []Network) {
+	var networks []Network
+	err := DB.Find(&networks)
+	if err.Error != nil {
+		return err.Error, nil
+	}
+	return nil, networks
+}
