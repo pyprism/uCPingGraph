@@ -1,7 +1,10 @@
 package prompts
 
 import (
+	"fmt"
+	"github.com/manifoldco/promptui"
 	"log"
+	"os"
 
 	"github.com/pyprism/uCPingGraph/models"
 )
@@ -16,35 +19,34 @@ func devicePromptInput(content DevicePromptContent) string {
 	networks, err := networkModel.GetAllNetworkName()
 	if err != nil {
 		log.Println(err.Error())
-		
+
 	}
 	index := -1
-    var result string
-    var err error
+	var result string
 
 	for index < 0 {
 		prompt := promptui.SelectWithAdd{
-			Label: content.Label
+			Label: content.Label,
 			Items: networks,
 		}
 
 		index, result, err = prompt.Run()
 
-        if index == -1 {
-            items = append(items, result)
-        }
+		if index == -1 {
+			networks = append(networks, result)
+		}
 	}
 
 	if err != nil {
-        fmt.Printf("Prompt failed %v\n", err)
-        os.Exit(1)
-    }
+		fmt.Printf("Prompt failed %v\n", err)
+		os.Exit(1)
+	}
 	return result
 }
 
 func AddNewDevice() {
 	networkListPrompt := DevicePromptContent{
-		Label: "Select network",
+		Label:    "Select network",
 		ErrorMsg: "Please select network from the list",
 	}
 
