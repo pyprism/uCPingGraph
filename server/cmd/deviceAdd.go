@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/pyprism/uCPingGraph/models"
+	"github.com/pyprism/uCPingGraph/prompts"
 	"github.com/spf13/cobra"
 )
 
@@ -15,5 +16,6 @@ var deviceAddCmd = &cobra.Command{
 	Long:  `Add a network to the database.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		models.ConnectDb()
+		prompts.AddNewDevice()
 	},
 }
