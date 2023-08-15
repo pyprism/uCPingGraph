@@ -6,6 +6,7 @@ import (
 	limits "github.com/gin-contrib/size"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	"github.com/pyprism/uCPingGraph/controllers"
 	"go.uber.org/zap"
 	"os"
 	"time"
@@ -31,6 +32,10 @@ func NewRouter() *gin.Engine {
 	router.Use(cors.Default())
 	router.Use(gzip.Gzip(gzip.BestCompression))
 	router.Use(limits.RequestSizeLimiter(10000)) // 10KB
+
+	api := new(controllers.APIController)
+
+	router.POST("/api/stats/", api.PostStats)
 
 	// for debug
 	router.GET("/status/", func(c *gin.Context) {
