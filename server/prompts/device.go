@@ -1,6 +1,7 @@
 package prompts
 
 import (
+	"errors"
 	"fmt"
 	"github.com/manifoldco/promptui"
 	"log"
@@ -14,7 +15,7 @@ type DevicePromptContent struct {
 	Label    string
 }
 
-func devicePromptInput(content DevicePromptContent) string {
+func devicePromptInputSelect(content DevicePromptContent) string {
 	networkModel := models.Network{}
 	networks, err := networkModel.GetAllNetworkName()
 	if err != nil {
@@ -44,12 +45,62 @@ func devicePromptInput(content DevicePromptContent) string {
 	return result
 }
 
+func devicePromptInput(dp DevicePromptContent) string {
+	validate := func(input string) error {
+		if len(input) <= 0 {
+			return errors.New(dp.ErrorMsg)
+		}
+		return nil
+	}
+
+	templates := &promptui.PromptTemplates{
+		Prompt:  "{{ . }} ",
+		Valid:   "{{ . | green }} ",
+		Invalid: "{{ . | red }} ",
+		Success: "{{ . | bold }} ",
+	}
+
+	prompt := promptui.Prompt{
+		Label:     dp.Label,
+		Templates: templates,
+		Validate:  validate,
+	}
+
+	result, err := prompt.Run()
+	if err != nil {
+		fmt.Printf("Prompt failed %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Input: %s\n", result)
+
+	return result
+}
+
 func AddNewDevice() {
 	networkListPrompt := DevicePromptContent{
 		Label:    "Select network",
 		ErrorMsg: "Please select network from the list",
 	}
 
-	networkName := devicePromptInput(networkListPrompt)
-	log.Println(networkName)
+	networkName := devicePromptInputSelect(networkListPrompt)
+	network := models.Network{}
+	networkId, err := network.GetNetworkIdByName(networkName)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	deviceNamePrompt := DevicePromptContent{
+		Label:    "Device name",
+		ErrorMsg: "Device name cannot be empty!",
+	}
+
+	deviceName := devicePromptInput(deviceNamePrompt)
+	device := models.Device{}
+	_, token, errr := device.CreateDevice(int(networkId), deviceName)
+	if errr != nil {
+		log.Println(errr.Error())
+		return
+	}
+	log.Println("Device token: " + token)
 }
