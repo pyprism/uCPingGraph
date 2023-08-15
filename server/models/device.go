@@ -9,7 +9,7 @@ type Device struct {
 	gorm.Model
 	NetworkID int
 	Network   Network
-	Name      string `gorm:"not null;size:500"`
+	Name      string `gorm:"unique;not null;size:500"`
 	Token     string `gorm:"index;not null;size:15"`
 }
 
@@ -19,7 +19,7 @@ func (d *Device) CreateDevice(networkID int, name string) (uint, string, error) 
 	d.Name = name
 	d.Token = token
 	err := DB.Create(d)
-	if err != nil {
+	if err.Error != nil {
 		return 0, "", err.Error
 	}
 	return d.ID, d.Token, nil
