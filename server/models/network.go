@@ -1,8 +1,9 @@
 package models
 
 import (
-	"gorm.io/gorm"
 	"log"
+
+	"gorm.io/gorm"
 )
 
 type Network struct {
@@ -10,29 +11,43 @@ type Network struct {
 	Name string `gorm:"unique;not null;size:500"`
 }
 
-func (n *Network) CreateNetwork(name string) (error, uint) {
+func (n *Network) CreateNetwork(name string) (uint, error) {
 	n.Name = name
 	err := DB.Create(n)
 	if err != nil {
 		log.Println("Failed to create network! Error: ", err.Error)
-		return err.Error, 0
+		return 0, err.Error
 	}
-	return nil, n.ID
+	return n.ID, nil
 }
 
-func (n *Network) GetNetworkIdByName(name string) (error, uint) {
+func (n *Network) GetNetworkIdByName(name string) (uint, error) {
 	err := DB.Where("name = ?", name).First(n)
 	if err.Error != nil {
-		return err.Error, 0
+		return 0, err.Error
 	}
-	return nil, n.ID
+	return n.ID, nil
 }
 
-func (n *Network) GetAllNetwork() (error, []Network) {
+func (n *Network) GetAllNetwork() ([]Network, error) {
 	var networks []Network
 	err := DB.Find(&networks)
 	if err.Error != nil {
-		return err.Error, nil
+		return nil, err.Error
 	}
-	return nil, networks
+	return networks, nil
+}
+
+
+func (n *Network) GetAllNetworkName() ([]string, error) {
+	var networks []Network
+	var names []string
+	err := DB.Find(&networks)
+	if err.Error != nil {
+		return nil, err.Error
+	}
+	for _, network := range networks {
+		names = append(names, network.Name)
+	}
+	return names, nil
 }

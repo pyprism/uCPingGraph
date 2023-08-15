@@ -3,10 +3,10 @@ package prompts
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/manifoldco/promptui"
 	"github.com/pyprism/uCPingGraph/models"
-	"log"
-	"os"
 )
 
 type NetworkPromptContent struct {
@@ -53,7 +53,6 @@ func CreateNetwork() {
 	}
 
 	networkName := networkPromptInput(networkContent)
-	log.Println(networkName)
 	networkDb := models.Network{}
 	networkDb.CreateNetwork(networkName)
 

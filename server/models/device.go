@@ -13,14 +13,14 @@ type Device struct {
 	Token     string `gorm:"index;not null;size:15"`
 }
 
-func (d *Device) CreateDevice(networkID int, name string) (error, uint, string) {
+func (d *Device) CreateDevice(networkID int, name string) (uint, string, error) {
 	token := utils.GenToken(15)
 	d.NetworkID = networkID
 	d.Name = name
 	d.Token = token
 	err := DB.Create(d)
 	if err != nil {
-		return err.Error, 0, ""
+		return 0, "", err.Error
 	}
-	return nil, d.ID, d.Token
+	return d.ID, d.Token, nil
 }
