@@ -14,7 +14,7 @@ type Network struct {
 func (n *Network) CreateNetwork(name string) (uint, error) {
 	n.Name = name
 	err := DB.Create(n)
-	if err != nil {
+	if err.Error != nil {
 		log.Println("Failed to create network! Error: ", err.Error)
 		return 0, err.Error
 	}
@@ -37,7 +37,6 @@ func (n *Network) GetAllNetwork() ([]Network, error) {
 	}
 	return networks, nil
 }
-
 
 func (n *Network) GetAllNetworkName() ([]string, error) {
 	var networks []Network
