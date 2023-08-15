@@ -24,3 +24,11 @@ func (d *Device) CreateDevice(networkID int, name string) (uint, string, error) 
 	}
 	return d.ID, d.Token, nil
 }
+
+func (d *Device) GetDeviceByToken(token string) (uint, int, error) {
+	err := DB.Where("token = ?", token).First(d)
+	if err.Error != nil {
+		return 0, 0, err.Error
+	}
+	return d.ID, d.NetworkID, nil
+}
