@@ -8,7 +8,7 @@ import (
 type APIController struct{}
 
 type postStats struct {
-	Latency float64 `json:"latency"`
+	Latency float64 `json:"latency" `
 }
 
 func (n *APIController) PostStats(c *gin.Context) {
@@ -24,7 +24,7 @@ func (n *APIController) PostStats(c *gin.Context) {
 	// get device id and network id from token
 	deviceID, networkID, err := device.GetDeviceByToken(token)
 	if err != nil {
-		c.JSON(400, gin.H{"Token retrieve error": err.Error()})
+		c.JSON(403, gin.H{"error": "Authorization header is invalid"})
 		return
 	}
 
