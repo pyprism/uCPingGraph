@@ -8,7 +8,7 @@ import (
 type APIController struct{}
 
 type postStats struct {
-	Latency float64 `json:"latency" `
+	Latency float64 `json:"latency" binding:"required"`
 }
 
 func (n *APIController) PostStats(c *gin.Context) {
