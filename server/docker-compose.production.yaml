@@ -1,0 +1,15 @@
+version: '3.9'
+
+services:
+  pgraph:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: uCPingGraph
+    env_file:
+      - .env
+    volumes:
+      - ./storage/:/app/storage/
+    ports:
+      - "127.0.0.1:${SERVER_PORT}:${SERVER_PORT}"
+    restart: always
