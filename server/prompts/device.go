@@ -92,11 +92,20 @@ func AddNewDevice() {
 
 	deviceNamePrompt := DevicePromptContent{
 		Label:    "Device name",
-		ErrorMsg: "Device name cannot be empty!",
+		ErrorMsg: "Device name cannot be empty and must be unique in the network",
 	}
 
 	deviceName := devicePromptInput(deviceNamePrompt)
 	device := models.Device{}
+
+	// Check if the device name is unique in the network
+	isUnique := device.CheckDeviceNameIsUnique(int(networkId), deviceName)
+	if !isUnique {
+		log.Println("Device name is not unique in the network")
+		return
+	}
+
+	// Create device
 	_, token, errr := device.CreateDevice(int(networkId), deviceName)
 	if errr != nil {
 		log.Println(errr.Error())
