@@ -1,0 +1,23 @@
+FROM golang:1.20.6-alpine3.17 AS builder
+
+WORKDIR /app
+
+COPY . .
+
+RUN apk add --no-cache gcc g++
+
+RUN go mod download
+
+RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o main
+
+# Minimal image for running the application
+FROM alpine as final
+
+WORKDIR /app
+
+COPY --from=builder /app/main /app/main
+
+RUN apk add --no-cache tini
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["/app/main", "server"]
