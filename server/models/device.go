@@ -9,8 +9,18 @@ type Device struct {
 	gorm.Model
 	NetworkID int
 	Network   Network
-	Name      string `gorm:"unique;not null;size:500"`
+	Name      string `gorm:"not null;size:500"`
 	Token     string `gorm:"index;not null;size:15"`
+}
+
+// CheckDeviceNameIsUnique checks if the device name is unique in the network
+func (d *Device) CheckDeviceNameIsUnique(networkID int, name string) bool {
+	var device Device
+	DB.Where("network_id = ? AND name = ?", networkID, name).First(&device)
+	if device.ID > 0 {
+		return false
+	}
+	return true
 }
 
 func (d *Device) CreateDevice(networkID int, name string) (uint, string, error) {
