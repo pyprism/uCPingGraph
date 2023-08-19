@@ -11,7 +11,7 @@ require (
 	github.com/manifoldco/promptui v0.9.0
 	github.com/spf13/cobra v1.7.0
 	go.uber.org/zap v1.25.0
-	gorm.io/driver/sqlite v1.5.2
+	gorm.io/driver/sqlite v1.5.3
 	gorm.io/gorm v1.25.3
 )
 
