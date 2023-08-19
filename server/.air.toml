@@ -3,8 +3,8 @@ testdata_dir = "/tmp/testdata"
 tmp_dir = "/tmp"
 
 [build]
-  bin = "/tmp/main server"
-  cmd = "go build -o /tmp/main ."
+  bin = "/app/main server"
+  cmd = "go build -o /app/main ."
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
   exclude_file = []
