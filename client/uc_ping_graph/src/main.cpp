@@ -8,6 +8,9 @@
 // update these with values suitable for your network and server
 const char *ssid = "";
 const char *password = "";
+const String domain = "";
+const String deviceToken = "";
+
 const IPAddress remote_ip(1, 1, 1, 1);
 
 void setup() {
@@ -33,11 +36,11 @@ void setup() {
 }
 
 void sendPost(int latency) {
-  const char *serverUrl = "https://postman-echo.com/post";
+  String sUrl = domain + "/api/stats/";
+  const char *serverUrl = sUrl.c_str();
   const int capacity = JSON_OBJECT_SIZE(2);
   StaticJsonDocument<capacity> body;
-  body["ping"] = latency;
-  body["ip"] = WiFi.localIP().toString();
+  body["latency"] = latency;
 
   // send https post request
 
@@ -49,11 +52,12 @@ void sendPost(int latency) {
     if (https.begin(*client, serverUrl)) {
       https.addHeader("Content-Type", "application/json");
       https.addHeader("Accept", "application/json");
+      https.addHeader("Authorization", deviceToken);
       int httpResponseCode = https.POST(body.as<String>());
 
-      Serial.println(body.as<String>());
+      // Serial.println(body.as<String>());
 
-      if (httpResponseCode > 0) {
+      if (httpResponseCode >= 200 && httpResponseCode <= 300) {
         Serial.print("HTTP Response code: ");
         Serial.println(httpResponseCode);
         String response = https.getString();
@@ -74,7 +78,7 @@ void sendPost(int latency) {
 
 int getPing() {
 
-  if (Ping.ping(remote_ip)) {
+  if (Ping.ping(remote_ip, 2)) {
     int avg_time_ms = Ping.averageTime();
     Serial.println(avg_time_ms);
     return avg_time_ms;
@@ -89,8 +93,8 @@ void loop() {
   int latency = getPing();
   if (latency == -1) {
     // TODO: LED blink
+    // digitalWrite(LED_BUILTIN, LOW);
   } else {
-    // led.Update();
     sendPost(latency);
   }
 }
