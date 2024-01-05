@@ -3,7 +3,9 @@ version: '3.9'
 services:
   pgraph:
     container_name: "pgraph"
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.production
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
