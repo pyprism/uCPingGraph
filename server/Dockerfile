@@ -1,6 +1,6 @@
-FROM golang:1.20.6-alpine3.17
+FROM golang:1.22.1-alpine3.18
 
-RUN apk add --no-cache inotify-tools gcc g++
+RUN apk add --no-cache inotify-tools gcc g++ musl-dev
 
 WORKDIR /app
 COPY . /app
