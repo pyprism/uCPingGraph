@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/pyprism/uCPingGraph/utils"
 )
 
 type APIController struct{}
@@ -28,7 +27,7 @@ func (n *APIController) PostStats(c *gin.Context) {
 		return
 	}
 
-	err := utils.SaveStats(token, float32(stats.Latency))
+	err := SaveStats(token, float32(stats.Latency))
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
