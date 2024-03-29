@@ -6,7 +6,7 @@ require (
 	github.com/gin-contrib/cors v1.7.1
 	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-contrib/size v0.0.0-20230212012657-e14a14094dc4
-	github.com/gin-contrib/zap v1.1.0
+	github.com/gin-contrib/zap v1.1.1
 	github.com/gin-gonic/gin v1.9.1
 	github.com/manifoldco/promptui v0.9.0
 	github.com/spf13/cobra v1.8.0
