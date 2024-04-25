@@ -17,7 +17,7 @@ func NewRouter() *gin.Engine {
 
 	router := gin.New()
 	router.Static("/static", "./static")
-	//router.LoadHTMLGlob("templates/*.html")
+	router.LoadHTMLGlob("templates/*.html")
 
 	if os.Getenv("DEBUG") != "True" {
 		gin.SetMode(gin.ReleaseMode)
