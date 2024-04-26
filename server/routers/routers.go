@@ -34,7 +34,11 @@ func NewRouter() *gin.Engine {
 	router.Use(limits.RequestSizeLimiter(10000)) // 10KB
 
 	api := new(controllers.APIController)
+	index := new(controllers.IndexController)
+	other := new(controllers.CommonController)
 
+	router.GET("/", index.Home)
+	router.GET("/:static", other.StaticFile)
 	router.POST("/api/stats/", api.PostStats)
 
 	// for debug
