@@ -25,3 +25,4 @@ server/.env
 server/tmp/*
 server/storage/db/*
 server/main
+.DS_Store
