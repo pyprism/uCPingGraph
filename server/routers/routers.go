@@ -38,6 +38,7 @@ func NewRouter() *gin.Engine {
 	other := new(controllers.CommonController)
 
 	router.GET("/", index.Home)
+	router.POST("/device/", index.GetDeviceList)
 	router.GET("/:static", other.StaticFile)
 	router.POST("/api/stats/", api.PostStats)
 
