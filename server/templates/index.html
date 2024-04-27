@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>{{ .htmlTitle }}</title>
     <link rel="stylesheet" href="/static/beer.3.5.4min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 </head>
 <body>
 
@@ -22,7 +23,7 @@
 </header>
 
 <div class="field label suffix border round">
-    <select name="network">
+    <select name="network" id="network">
         {{range .networks}}
         <option>{{.}}</option>
         {{end}}
@@ -32,10 +33,8 @@
 </div>
 
 <div class="field label suffix border round">
-    <select name="device">
-        <option>Item 1</option>
-        <option>Item 2</option>
-        <option>Item 3</option>
+    <select name="device" id="device">
+        <option>First select network</option>
     </select>
     <label>Device Name</label>
     <i>arrow_drop_down</i>
@@ -44,6 +43,7 @@
 
 <script type="module" src="/static/beer.min.js"></script>
 <script type="module" src="/static/material-dynamic-colors.min.js"></script>
-<script type="module" src="/static/jquery-3.7.1.min.js"></script>
+<script src="/static/jquery-3.7.1.min.js"></script>
+<script src="/static/custom.js"></script>
 </body>
 </html>
