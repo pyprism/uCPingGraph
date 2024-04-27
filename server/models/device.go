@@ -13,6 +13,10 @@ type Device struct {
 	Token     string `gorm:"index;not null;size:15"`
 }
 
+type DeviceAPI struct {
+	Name string `json:"name"`
+}
+
 // CheckDeviceNameIsUnique checks if the device name is unique in the network
 func (d *Device) CheckDeviceNameIsUnique(networkID int, name string) bool {
 	var device Device
@@ -43,11 +47,11 @@ func (d *Device) GetDeviceByToken(token string) (uint, int, error) {
 	return d.ID, d.NetworkID, nil
 }
 
-func (d *Device) GetDevicesByNetwork(networkID int) ([]Device, error) {
-	var devices []Device
-	err := DB.Where("network_id = ?", networkID).Select("name").Find(&devices)
+func (d *Device) GetDevicesByNetwork(networkID int) ([]DeviceAPI, error) {
+	var devices []DeviceAPI
+	err := DB.Model(&Device{}).Where("network_id = ?", networkID).Find(&devices)
 	if err.Error != nil {
-		return []Device{}, err.Error
+		return []DeviceAPI{}, err.Error
 	}
 	return devices, nil
 }
