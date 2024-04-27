@@ -42,3 +42,12 @@ func (d *Device) GetDeviceByToken(token string) (uint, int, error) {
 	}
 	return d.ID, d.NetworkID, nil
 }
+
+func (d *Device) GetDevicesByNetwork(networkID int) ([]Device, error) {
+	var devices []Device
+	err := DB.Where("network_id = ?", networkID).Select("name").Find(&devices)
+	if err.Error != nil {
+		return []Device{}, err.Error
+	}
+	return devices, nil
+}
