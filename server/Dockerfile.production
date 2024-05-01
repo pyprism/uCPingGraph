@@ -17,7 +17,9 @@ WORKDIR /app
 
 COPY --from=builder /app/main /app/main
 
-RUN apk add --no-cache tini
+RUN apk add --no-cache tini tzdata
+
+ENV TZ=Asia/Dhaka
 
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["/app/main", "server"]
