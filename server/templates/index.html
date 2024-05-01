@@ -25,7 +25,7 @@
 <div class="field label suffix border round">
     <select name="network" id="network">
         {{range .networks}}
-        <option>{{.}}</option>
+        <option value="{{.}}">{{.}}</option>
         {{end}}
     </select>
     <label>Network Name</label>
@@ -44,6 +44,7 @@
 <script type="module" src="/static/beer.min.js"></script>
 <script type="module" src="/static/material-dynamic-colors.min.js"></script>
 <script src="/static/jquery-3.7.1.min.js"></script>
+<script src="/static/echarts.min.js"></script>
 <script src="/static/custom.js"></script>
 </body>
 </html>
