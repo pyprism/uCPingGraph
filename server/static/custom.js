@@ -39,10 +39,79 @@ function networkSelector() {
     });
 }
 
+function generateChart(data) {
+    let chart = echarts.init(document.getElementById('chart'), null, {
+        renderer: 'svg'
+    });
+    console.log(data.series);
+    let option = {
+        title: {
+            text: 'Temperature Change in the Coming Week'
+        },
+        tooltip: {
+            trigger: 'axis'
+        },
+        legend: {},
+        toolbox: {
+            show: true,
+            feature: {
+                dataZoom: {
+                    yAxisIndex: 'none'
+                },
+                dataView: { readOnly: false },
+                magicType: { type: ['line', 'bar'] },
+                restore: {},
+                saveAsImage: {}
+            }
+        },
+        xAxis: {
+            type: 'category',
+            data: data.labels
+        },
+        yAxis: {
+            type: 'value'
+        },
+        series: [{
+            data: data.series,
+            type: 'line',
+            smooth: true
+        }]
+    };
+    chart.setOption(option);
+}
+
+function getChartData() {
+    let network, device;
+    let networkSelector = $('#network');
+    let deviceSelector = $('#device');
+
+    network = networkSelector.val();
+    device = deviceSelector.val();
+
+    if(!network) {
+        network = networkSelector.find("option:first-child").val();
+    }
+    if(!device) {
+        network = deviceSelector.find("option:first-child").val();
+    }
+
+    let data = {"network_name": network, "device_name": device};
+    commonAjax(data, '/chart/', function (data, error){
+        if (error) {
+            console.error("get chart data error: ", error);
+        } else {
+            console.log(data);
+            generateChart(data);
+        }
+    });
+}
+
 // no it should be detect single lady function !
 function detectSingleDevice() {
     let optionsCount = $('#device option').length;
-    console.log(optionsCount);
+    if (optionsCount === 1 ) {
+        getChartData();
+    }
 }
 
 // if the user has only one network, they don't need to select a single network
@@ -63,15 +132,7 @@ function detectSingleNetwork() {
 
 function deviceSelector() {
     $('#device').on('change', function() {
-        let data = {"name": this.value};
-        console.log(data)
-        // commonAjax(data, '/device/', function (data, error){
-        //     if (error) {
-        //         console.error("Network call error: ", error);
-        //     } else {
-        //         commonDeviceSelector(data);
-        //     }
-        // });
+        getChartData();
     });
 }
 
