@@ -13,11 +13,15 @@ type network struct {
 	Name string `json:"name" binding:"required"`
 }
 
+type statsPost struct {
+	NetworkName string `json:"network_name" binging:"required"`
+	DeviceName  string `json:"device_name" binging:"required"`
+}
+
+// Home route /
 func (n *IndexController) Home(c *gin.Context) {
 	networkModel := models.Network{}
-	// deviceModel := models.Device{}
 	networks, err := networkModel.GetAllNetworkName()
-	// devices, err := deviceModel.Get
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -28,6 +32,7 @@ func (n *IndexController) Home(c *gin.Context) {
 	})
 }
 
+// GetDeviceList route /device/
 func (n *IndexController) GetDeviceList(c *gin.Context) {
 	var network network
 	err := c.BindJSON(&network)
@@ -54,4 +59,37 @@ func (n *IndexController) GetDeviceList(c *gin.Context) {
 
 	c.JSON(http.StatusOK, devices)
 
+}
+
+// Chart returns json for chart generation; route /chart/
+func (n *IndexController) Chart(c *gin.Context) {
+	var statusPost statsPost
+	err := c.BindJSON(&statusPost)
+	if err != nil {
+		log.Println(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	deviceModel := models.Device{}
+	networkModel := models.Network{}
+	statModel := models.Stat{}
+
+	networkId, err := networkModel.GetNetworkIdByName(statusPost.NetworkName)
+	if err != nil {
+		log.Println(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	deviceId, err := deviceModel.GetDeviceIdByName(statusPost.DeviceName, networkId)
+	if err != nil {
+		log.Println(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	data, err := statModel.GetStats(networkId, deviceId)
+	if err != nil {
+		log.Println(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+	c.JSON(http.StatusOK, data)
 }
