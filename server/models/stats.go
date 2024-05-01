@@ -1,6 +1,9 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 // Stat is the model for the ping stats table.
 type Stat struct {
@@ -10,6 +13,11 @@ type Stat struct {
 	DeviceID  int
 	Device    Device
 	Latency   float32 `gorm:"not null"`
+}
+
+type EChartData struct {
+	Labels []string  `json:"labels"`
+	Series []float32 `json:"series"`
 }
 
 // CreateStat creates a new stat.
@@ -22,4 +30,26 @@ func (s *Stat) CreateStat(networkID int, deviceID int, latency float32) error {
 		return err.Error
 	}
 	return nil
+}
+
+func (s *Stat) GetStats(networkID, deviceID uint) (*EChartData, error) {
+	// Calculate the time 4 hours ago
+	fourHoursAgo := time.Now().Add(-4 * time.Hour)
+
+	var stats []Stat
+	if result := DB.Where("created_at >= ? AND network_id = ? AND device_id = ?", fourHoursAgo, networkID, deviceID).Order("created_at ASC").Find(&stats); result.Error != nil {
+		return nil, result.Error
+	}
+
+	chartData := EChartData{
+		Labels: make([]string, len(stats)),
+		Series: make([]float32, len(stats)),
+	}
+
+	for i, stat := range stats {
+		chartData.Labels[i] = stat.CreatedAt.Format("2006-01-02 15:04:05")
+		chartData.Series[i] = stat.Latency
+	}
+
+	return &chartData, nil
 }
