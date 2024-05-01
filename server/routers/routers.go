@@ -39,6 +39,7 @@ func NewRouter() *gin.Engine {
 
 	router.GET("/", index.Home)
 	router.POST("/device/", index.GetDeviceList)
+	router.POST("/chart/", index.Chart)
 	router.GET("/:static", other.StaticFile)
 	router.POST("/api/stats/", api.PostStats)
 
