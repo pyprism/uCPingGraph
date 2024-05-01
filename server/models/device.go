@@ -55,3 +55,11 @@ func (d *Device) GetDevicesByNetwork(networkID int) ([]DeviceAPI, error) {
 	}
 	return devices, nil
 }
+
+func (d *Device) GetDeviceIdByName(name string, networkId uint) (uint, error) {
+	err := DB.Where("network_id = ? AND name = ?", networkId, name).First(d)
+	if err.Error != nil {
+		return 0, err.Error
+	}
+	return d.ID, nil
+}
