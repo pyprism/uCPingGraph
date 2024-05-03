@@ -8,7 +8,7 @@ RUN apk add --no-cache gcc g++ musl-dev
 
 RUN go mod download
 
-RUN CGO_ENABLED=1 GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o main
+RUN CGO_ENABLED=1 CGO_CFLAGS="-D_LARGEFILE64_SOURCE" GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o main
 
 # Minimal image for running the application
 FROM alpine as final
