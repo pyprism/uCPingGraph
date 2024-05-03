@@ -12,7 +12,7 @@ require (
 	github.com/spf13/cobra v1.8.0
 	go.uber.org/zap v1.27.0
 	gorm.io/driver/sqlite v1.5.5
-	gorm.io/gorm v1.25.9
+	gorm.io/gorm v1.25.10
 )
 
 require (
@@ -44,7 +44,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
