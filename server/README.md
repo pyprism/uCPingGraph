@@ -15,6 +15,11 @@
 `docker compose -f docker-compose.production.yaml exec pgraph /app/main device add`
 ###### Copy the token and paste it in the device's config file 
 
+##### Update instance
+```
+docker compose -f docker-compose.production.yaml down
+docker compose -f docker-compose.production.yaml up --force-recreate --build -d
+```
 ### Endpoints
 ###### `POST /api/stats` For pushing data from client to server
 Required Header:
