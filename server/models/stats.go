@@ -33,11 +33,11 @@ func (s *Stat) CreateStat(networkID int, deviceID int, latency float32) error {
 }
 
 func (s *Stat) GetStats(networkID, deviceID uint) (*EChartData, error) {
-	// Calculate the time 4 hours ago
-	fourHoursAgo := time.Now().Add(-4 * time.Hour)
+	// Calculate the time 2 hours ago
+	twoHoursAgo := time.Now().Add(-2 * time.Hour)
 
 	var stats []Stat
-	if result := DB.Where("created_at >= ? AND network_id = ? AND device_id = ?", fourHoursAgo, networkID, deviceID).Order("created_at ASC").Find(&stats); result.Error != nil {
+	if result := DB.Where("created_at >= ? AND network_id = ? AND device_id = ?", twoHoursAgo, networkID, deviceID).Order("created_at ASC").Find(&stats); result.Error != nil {
 		return nil, result.Error
 	}
 
@@ -47,7 +47,7 @@ func (s *Stat) GetStats(networkID, deviceID uint) (*EChartData, error) {
 	}
 
 	for i, stat := range stats {
-		chartData.Labels[i] = stat.CreatedAt.Format("2006-01-02 15:04:05")
+		chartData.Labels[i] = stat.CreatedAt.Format("2006-01-02 12:04:05")
 		chartData.Series[i] = stat.Latency
 	}
 
