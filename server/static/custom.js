@@ -40,6 +40,7 @@ function networkSelector() {
 }
 
 function generateChart(data) {
+    $('#loader').remove();
     let chart = echarts.init(document.getElementById('chart'), null, {
         renderer: 'svg'
     });
@@ -101,7 +102,6 @@ function getChartData() {
             console.error("get chart data error: ", error);
         } else {
             console.log(data);
-            $('#loader').remove();
             generateChart(data);
         }
     });
