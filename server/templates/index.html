@@ -7,6 +7,7 @@
     <link rel="icon" href="/static/favicon/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="/static/favicon/apple-touch-icon.png">
     <link rel="manifest" href="/static/favicon/site.webmanifest">
+    <link rel="stylesheet" href="/static/loader.css">
     <link rel="stylesheet" href="/static/beer.3.5.4min.css">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
 </head>
@@ -47,7 +48,13 @@
                 <i>arrow_drop_down</i>
             </div>
         </div>
+
         <div class="s12">
+            <div class="medium no-padding" id="loader">
+                <div class="padding absolute center">
+                    <div class="loader"></div>
+                </div>
+            </div>
             <div id="chart" style="height:90vh;"></div>
         </div>
     </div>
