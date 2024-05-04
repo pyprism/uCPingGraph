@@ -47,7 +47,7 @@ func (s *Stat) GetStats(networkID, deviceID uint) (*EChartData, error) {
 	}
 
 	for i, stat := range stats {
-		chartData.Labels[i] = stat.CreatedAt.Format("2006-01-02 12:04:05")
+		chartData.Labels[i] = stat.CreatedAt.Format("02-January-2006 10:04:05 PM")
 		chartData.Series[i] = stat.Latency
 	}
 
