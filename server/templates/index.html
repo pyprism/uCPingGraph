@@ -8,7 +8,7 @@
     <link rel="apple-touch-icon" href="/static/favicon/apple-touch-icon.png">
     <link rel="manifest" href="/static/favicon/site.webmanifest">
     <link rel="stylesheet" href="/static/beer.3.5.4min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
 </head>
 <body>
 
@@ -25,27 +25,33 @@
         <h5 class="max center-align">μCPingGraph</h5>
     </nav>
 </header>
-
-<div class="field label suffix border round">
-    <select name="network" id="network">
-        {{range .networks}}
-        <option value="{{.}}">{{.}}</option>
-        {{end}}
-    </select>
-    <label>Network Name</label>
-    <i>arrow_drop_down</i>
-</div>
-
-<div class="field label suffix border round">
-    <select name="device" id="device">
-        <option>First select network</option>
-    </select>
-    <label>Device Name</label>
-    <i>arrow_drop_down</i>
-</div>
-
-<div id="chart" style="width: 1800px;height:400px;"></div>
-
+<main class="responsive max">
+    <div class="grid" style="padding-top: 20px">
+        <div class="s6">
+            <div class="field label suffix border round">
+                <select name="network" id="network">
+                    {{range .networks}}
+                    <option value="{{.}}">{{.}}</option>
+                    {{end}}
+                </select>
+                <label>Network Name</label>
+                <i>arrow_drop_down</i>
+            </div>
+        </div>
+        <div class="s6">
+            <div class="field label suffix border round">
+                <select name="device" id="device">
+                    <option>First select network</option>
+                </select>
+                <label>Device Name</label>
+                <i>arrow_drop_down</i>
+            </div>
+        </div>
+        <div class="s12">
+            <div id="chart" style="height:90vh;"></div>
+        </div>
+    </div>
+</main>
 <script type="module" src="/static/beer.min.js"></script>
 <script type="module" src="/static/material-dynamic-colors.min.js"></script>
 <script src="/static/jquery-3.7.1.min.js"></script>
