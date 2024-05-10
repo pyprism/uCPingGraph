@@ -3,7 +3,7 @@ module github.com/pyprism/uCPingGraph
 go 1.20
 
 require (
-	github.com/gin-contrib/cors v1.7.1
+	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-contrib/gzip v1.0.0
 	github.com/gin-contrib/size v1.0.0
 	github.com/gin-contrib/zap v1.1.1
