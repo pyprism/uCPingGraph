@@ -17,6 +17,9 @@ WORKDIR /app
 
 COPY --from=builder /app/main /app/main
 
+RUN mkdir templates
+COPY --from=builder /app/templates/ /app/templates/
+
 RUN apk add --no-cache tini tzdata
 
 ENV TZ=Asia/Dhaka
