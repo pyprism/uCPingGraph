@@ -85,6 +85,7 @@ function getChartData() {
     let network, device;
     let networkSelector = $('#network');
     let deviceSelector = $('#device');
+    let slider = Number($('#slider').val());
 
     network = networkSelector.val();
     device = deviceSelector.val();
@@ -96,7 +97,7 @@ function getChartData() {
         network = deviceSelector.find("option:first-child").val();
     }
 
-    let data = {"network_name": network, "device_name": device};
+    let data = {"network_name": network, "device_name": device, "minute": slider};
     commonAjax(data, '/chart/', function (data, error){
         if (error) {
             console.error("get chart data error: ", error);
@@ -137,8 +138,15 @@ function deviceSelector() {
     });
 }
 
+function detectSliderChange() {
+    $('#slider').on('change', function() {
+        getChartData();
+    });
+}
+
 $(document).ready(function(){
     networkSelector();
     detectSingleNetwork();
     deviceSelector();
+    detectSliderChange();
 });
