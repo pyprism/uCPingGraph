@@ -32,12 +32,12 @@ func (s *Stat) CreateStat(networkID int, deviceID int, latency float32) error {
 	return nil
 }
 
-func (s *Stat) GetStats(networkID, deviceID uint) (*EChartData, error) {
-	// Calculate the time 2 hours ago
-	twoHoursAgo := time.Now().Add(-2 * time.Hour)
+func (s *Stat) GetStats(networkID, deviceID uint, minute int) (*EChartData, error) {
+	// Calculate the X min ago
+	xMinAgo := time.Now().Add(-time.Duration(minute) * time.Minute)
 
 	var stats []Stat
-	if result := DB.Where("created_at >= ? AND network_id = ? AND device_id = ?", twoHoursAgo, networkID, deviceID).Order("created_at ASC").Find(&stats); result.Error != nil {
+	if result := DB.Where("created_at >= ? AND network_id = ? AND device_id = ?", xMinAgo, networkID, deviceID).Order("created_at ASC").Find(&stats); result.Error != nil {
 		return nil, result.Error
 	}
 
