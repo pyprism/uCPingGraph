@@ -16,6 +16,7 @@ type network struct {
 type statsPost struct {
 	NetworkName string `json:"network_name" binging:"required"`
 	DeviceName  string `json:"device_name" binging:"required"`
+	Minute      int    `json:"minute" binging:"required"`
 }
 
 // Home route /
@@ -86,7 +87,7 @@ func (n *IndexController) Chart(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	data, err := statModel.GetStats(networkId, deviceId)
+	data, err := statModel.GetStats(networkId, deviceId, statusPost.Minute)
 	if err != nil {
 		log.Println(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
