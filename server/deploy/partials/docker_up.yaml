@@ -1,0 +1,12 @@
+---
+- hosts: hiren
+  become: yes
+  become_flags: "-E"
+  become_user: prism
+  gather_facts: no
+
+  tasks:
+    - name: Run docker build command
+      command: docker compose -f docker-compose.production.yaml up --force-recreate --build -d
+      args:
+        chdir: /home/prism/newsarchive/Hiren-NewsArchive-SSR/

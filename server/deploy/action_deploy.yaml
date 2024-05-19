@@ -1,0 +1,5 @@
+---
+- import_playbook: partials/git_pull_github_action.yaml
+- import_playbook: partials/build_binary.yaml
+- import_playbook: partials/restart_systemd.yaml
+- import_playbook: partials/restart_sitemap_systemd.yaml

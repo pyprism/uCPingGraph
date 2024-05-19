@@ -1,0 +1,12 @@
+---
+- hosts: hiren
+  become: yes
+  become_flags: "-E"
+  become_user: prism
+  gather_facts: no
+
+  tasks:
+    - name: Stop docker container
+      command: docker compose -f docker-compose.production.yaml down
+      args:
+        chdir: /home/prism/newsarchive/Hiren-NewsArchive-SSR/

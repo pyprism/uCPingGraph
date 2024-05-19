@@ -1,0 +1,10 @@
+---
+- hosts: hiren
+  become_user: root
+  gather_facts: no
+  become: yes
+  become_method: su
+
+  tasks:
+    - name: Restart main systemd
+      command: systemctl restart ucpinggraph
