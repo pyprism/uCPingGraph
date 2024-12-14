@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/pyprism/uCPingGraph/models"
+	"github.com/pyprism/uCPingGraph/service"
 	"github.com/spf13/cobra"
 )
 
@@ -15,10 +16,6 @@ var cleanCmd = &cobra.Command{
 	Long:  `Clean old data from the database.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		models.ConnectDb()
-		stats := models.Stat{}
-		err := stats.Cleanup()
-		if err != nil {
-			panic(err)
-		}
+		service.CleanDB()
 	},
 }
