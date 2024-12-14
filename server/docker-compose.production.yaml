@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   pgraph:
     build:
@@ -13,3 +11,16 @@ services:
     ports:
       - "127.0.0.1:${SERVER_PORT}:${SERVER_PORT}"
     restart: always
+    command: ["/app/main", "server"]
+
+  cleanup:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    container_name: uCPingGraphCleanup
+    env_file:
+      - .env
+    volumes:
+      - ./storage/:/app/storage/
+    restart: always
+    command: ["/app/main", "cleanup"]
