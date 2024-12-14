@@ -1,7 +1,10 @@
 package models
 
 import (
+	"github.com/pyprism/uCPingGraph/utils"
 	"gorm.io/gorm"
+	"log"
+	"strconv"
 	"time"
 )
 
@@ -52,4 +55,20 @@ func (s *Stat) GetStats(networkID, deviceID uint, minute int) (*EChartData, erro
 	}
 
 	return &chartData, nil
+}
+
+// Cleanup deletes the stats older than X days
+func (s *Stat) Cleanup() error {
+	days := utils.GetEnv("CLEANUP_DAYS", "30")
+	daysInt, err := strconv.Atoi(days)
+	if err != nil {
+		log.Fatal(err)
+	}
+	xDaysAgo := time.Now().AddDate(0, 0, -daysInt)
+
+	if result := DB.Where("created_at <= ?", xDaysAgo).Delete(&Stat{}); result.Error != nil {
+		return result.Error
+	}
+
+	return nil
 }
