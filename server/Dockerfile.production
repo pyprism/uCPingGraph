@@ -2,16 +2,17 @@ FROM golang:1.22.1-alpine3.19 AS builder
 
 WORKDIR /app
 
-COPY . .
-
 RUN apk add --no-cache gcc g++ musl-dev
 
+COPY go.mod go.sum ./
 RUN go mod download
+
+COPY . .
 
 RUN CGO_ENABLED=1 CGO_CFLAGS="-D_LARGEFILE64_SOURCE" GOOS=linux go build -a -ldflags "-linkmode external -extldflags '-static' -s -w" -o main
 
 # Minimal image for running the application
-FROM alpine as final
+FROM alpine:3.19 as final
 
 WORKDIR /app
 
@@ -25,4 +26,3 @@ RUN apk add --no-cache tini tzdata
 ENV TZ=Asia/Dhaka
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["/app/main", "server"]
