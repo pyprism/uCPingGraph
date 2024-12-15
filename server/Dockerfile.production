@@ -20,6 +20,7 @@ COPY --from=builder /app/main /app/main
 
 RUN mkdir templates
 COPY --from=builder /app/templates/ /app/templates/
+COPY --from=builder /app/static/ /app/static/
 
 RUN apk add --no-cache tini tzdata
 
