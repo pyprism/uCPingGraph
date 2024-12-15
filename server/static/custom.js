@@ -100,6 +100,7 @@ function getChartData() {
     let data = {"network_name": network, "device_name": device, "minute": slider};
     commonAjax(data, '/chart/', function (data, error){
         if (error) {
+            $('#chart').html('<p style="color: red;">Failed to load data. Please try again.</p>');
             console.error("get chart data error: ", error);
         } else {
             console.log(data);
@@ -138,10 +139,17 @@ function deviceSelector() {
     });
 }
 
+// Minimize API calls when the slider is dragged
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
 function detectSliderChange() {
-    $('#slider').on('change', function() {
-        getChartData();
-    });
+    $('#slider').on('input', debounce(getChartData, 300));
 }
 
 $(document).ready(function(){
