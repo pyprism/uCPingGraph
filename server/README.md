@@ -17,8 +17,9 @@
 
 ##### Update instance
 ```
-docker compose -f docker-compose.production.yaml down
-docker compose -f docker-compose.production.yaml up --force-recreate --build -d
+git pull
+docker compose -f docker-compose.production.yaml build
+docker compose -f docker-compose.production.yaml up -d
 ```
 ### Endpoints
 ###### `POST /api/stats` For pushing data from client to server
