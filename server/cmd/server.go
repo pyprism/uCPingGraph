@@ -4,6 +4,7 @@ import (
 	"github.com/pyprism/uCPingGraph/models"
 	"github.com/pyprism/uCPingGraph/routers"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 func init() {
@@ -15,7 +16,9 @@ var serverCmd = &cobra.Command{
 	Short: "Start the server",
 	Long:  `Start the server to serve the web app.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		models.ConnectDb()
+		if err := models.ConnectDb(); err != nil {
+			log.Fatalf("failed to connect database: %v", err)
+		}
 		routers.Init()
 	},
 }
