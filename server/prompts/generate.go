@@ -17,13 +17,23 @@ func GenerateDummyData() {
 
 	token := commonPromptInput(tokenContent)
 	serverPort := utils.GetEnv("SERVER_PORT", "8080")
-	url := "http://127.0.0.1:" + serverPort + "/api/stats/"
+	url := "http://127.0.0.1:" + serverPort + "/api/stats"
 
 	// call local API
 	for {
 		latency := utils.RandomFloat()
+		sentPackets := 5
+		receivedPackets := sentPackets - utils.RandomInt()%2
+		packetLoss := (float64(sentPackets-receivedPackets) / float64(sentPackets)) * 100
+
 		jsonData := map[string]interface{}{
-			"latency": latency,
+			"latency_ms":          latency,
+			"sent_packets":        sentPackets,
+			"received_packets":    receivedPackets,
+			"packet_loss_percent": packetLoss,
+			"target":              "1.1.1.1",
+			"platform":            "dummy",
+			"rssi":                -55,
 		}
 
 		jsonDataBytes, err := json.Marshal(jsonData)
