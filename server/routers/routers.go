@@ -13,42 +13,41 @@ import (
 )
 
 func NewRouter() *gin.Engine {
-	var logger *zap.Logger
-
 	router := gin.New()
 	router.Static("/static", "./static")
 	router.LoadHTMLGlob("templates/*.html")
 
 	if os.Getenv("DEBUG") != "True" {
 		gin.SetMode(gin.ReleaseMode)
-		logger, _ = zap.NewProduction()
+		logger, _ := zap.NewProduction()
 		router.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 		router.Use(ginzap.RecoveryWithZap(logger, true))
+	} else {
+		router.Use(gin.Logger())
+		router.Use(gin.Recovery())
 	}
 
-	router.SetTrustedProxies([]string{"127.0.0.1"})
-	router.Use(gin.Logger())
-	router.Use(gin.Recovery())
+	_ = router.SetTrustedProxies(nil)
 	router.Use(cors.Default())
 	router.Use(gzip.Gzip(gzip.BestCompression))
-	router.Use(limits.RequestSizeLimiter(10000)) // 10KB
+	router.Use(limits.RequestSizeLimiter(32 * 1024))
 
 	api := new(controllers.APIController)
 	index := new(controllers.IndexController)
-	other := new(controllers.CommonController)
 
 	router.GET("/", index.Home)
-	router.POST("/device/", index.GetDeviceList)
-	router.POST("/chart/", index.Chart)
-	router.GET("/:static", other.StaticFile)
-	router.POST("/api/stats/", api.PostStats)
-
-	// for debug
-	router.GET("/status/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"hi": "hiren",
-		})
+	router.GET("/healthz", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
 	})
+
+	apiGroup := router.Group("/api")
+	{
+		apiGroup.POST("/stats", api.PostStats)
+		apiGroup.POST("/stats/", api.PostStats)
+		apiGroup.GET("/networks", api.Networks)
+		apiGroup.GET("/networks/:network/devices", api.DevicesByNetwork)
+		apiGroup.GET("/series", api.Series)
+	}
 
 	return router
 }
