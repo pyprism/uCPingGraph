@@ -242,7 +242,7 @@ void connectWiFi() {
   wifiManager.setConnectTimeout(15);
   wifiManager.setSaveConfigCallback(saveConfigCallback);
 
-  char serverURL[128];
+  char serverURL[256];
   char deviceToken[96];
   char pingTarget[64];
   char probeCount[8];
