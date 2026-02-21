@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/pyprism/uCPingGraph/models"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,18 +11,21 @@ import (
 
 func CleanDB() {
 	done := make(chan os.Signal, 1)
+	signal.Notify(done, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+
 		for {
 			stats := models.Stat{}
-			err := stats.Cleanup()
-			if err != nil {
-				panic(err)
+			if err := stats.Cleanup(); err != nil {
+				log.Printf("cleanup job failed: %v", err)
 			}
-			<-time.After(time.Duration(24) * time.Hour)
+
+			<-ticker.C
 		}
 	}()
 
 	<-done
-	signal.Notify(done, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 }
