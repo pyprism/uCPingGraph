@@ -1,7 +1,7 @@
 package models
 
 import (
-	"log"
+	"errors"
 
 	"gorm.io/gorm"
 )
@@ -12,41 +12,53 @@ type Network struct {
 }
 
 func (n *Network) CreateNetwork(name string) (uint, error) {
+	if DB == nil {
+		return 0, errors.New("database is not initialized")
+	}
+
 	n.Name = name
-	err := DB.Create(n)
-	if err.Error != nil {
-		log.Println("Failed to create network! Error: ", err.Error)
-		return 0, err.Error
+	result := DB.Create(n)
+	if result.Error != nil {
+		return 0, result.Error
 	}
 	return n.ID, nil
 }
 
 func (n *Network) GetNetworkIdByName(name string) (uint, error) {
-	err := DB.Where("name = ?", name).First(n)
-	if err.Error != nil {
-		return 0, err.Error
+	if DB == nil {
+		return 0, errors.New("database is not initialized")
+	}
+
+	result := DB.Where("name = ?", name).First(n)
+	if result.Error != nil {
+		return 0, result.Error
 	}
 	return n.ID, nil
 }
 
 func (n *Network) GetAllNetwork() ([]Network, error) {
+	if DB == nil {
+		return nil, errors.New("database is not initialized")
+	}
+
 	var networks []Network
-	err := DB.Find(&networks)
-	if err.Error != nil {
-		return nil, err.Error
+	result := DB.Order("name ASC").Find(&networks)
+	if result.Error != nil {
+		return nil, result.Error
 	}
 	return networks, nil
 }
 
 func (n *Network) GetAllNetworkName() ([]string, error) {
-	var networks []Network
-	var names []string
-	err := DB.Find(&networks)
-	if err.Error != nil {
-		return nil, err.Error
+	networks, err := n.GetAllNetwork()
+	if err != nil {
+		return nil, err
 	}
+
+	names := make([]string, 0, len(networks))
 	for _, network := range networks {
 		names = append(names, network.Name)
 	}
+
 	return names, nil
 }
