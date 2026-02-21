@@ -2,73 +2,73 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ .htmlTitle }}</title>
-    <link rel="icon" href="/static/favicon/favicon-144.png" type="image/png">
     <link rel="icon" href="/static/favicon/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="/static/favicon/apple-touch-icon.png">
     <link rel="manifest" href="/static/favicon/site.webmanifest">
-    <link rel="stylesheet" href="/static/loader.css">
-    <link rel="stylesheet" href="/static/beer.3.5.4min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/dashboard.css">
 </head>
 <body>
+<div class="bg-grid"></div>
+<main class="container">
+    <header class="hero">
+        <div>
+            <p class="eyebrow">Network Telemetry</p>
+            <h1>uCPingGraph</h1>
+            <p class="subtitle">Track latency and packet loss in real time for ESP8266 and ESP32 devices.</p>
+        </div>
+        <div class="status-pill" id="last-updated">Waiting for data</div>
+    </header>
 
-<header class="primary-container">
-    <nav>
-        <button class="circle transparent">
-            <i>menu</i>
-            <menu class="no-wrap">
-                <a href="https://github.com/pyprism/uCPingGraph" target="_blank"> Github</a>
-            </menu>
-        </button>
-        <h5 class="max center-align">μCPingGraph</h5>
-    </nav>
-</header>
-<main class="responsive max">
-    <div class="grid" style="padding-top: 20px">
-        <div class="s6">
-            <div class="field label suffix border round">
-                <select name="network" id="network">
-                    {{range .networks}}
-                    <option value="{{.}}">{{.}}</option>
-                    {{end}}
-                </select>
-                <label>Network Name</label>
-                <i>arrow_drop_down</i>
-            </div>
+    <section class="panel controls">
+        <div class="field">
+            <label for="network">Network</label>
+            <select id="network"></select>
         </div>
-        <div class="s6">
-            <div class="field label suffix border round">
-                <select name="device" id="device">
-                    <option>First select network</option>
-                </select>
-                <label>Device Name</label>
-                <i>arrow_drop_down</i>
-            </div>
+        <div class="field">
+            <label for="device">Device</label>
+            <select id="device"></select>
         </div>
-        <div class="s12">
-            <label class="slider">
-                <input type="range" value="60" min="1" max="10080" id="slider">
-                <span></span>
-                <div class="tooltip">
-                    Minutes
-                </div>
-            </label>
+        <div class="field range-field">
+            <label for="minutes">Window</label>
+            <input type="range" id="minutes" min="1" max="10080" value="60">
+            <span id="minutes-label">60 minutes</span>
         </div>
+    </section>
 
-        <div class="s12">
-            <div class="medium no-padding" id="loader">
-                <div class="padding absolute center">
-                    <div class="loader"></div>
-                </div>
-            </div>
-            <div id="chart" style="height:90vh;"></div>
+    <section class="summary-grid">
+        <article class="panel metric-card">
+            <h2>Latest Latency</h2>
+            <p id="latest-latency">- ms</p>
+        </article>
+        <article class="panel metric-card">
+            <h2>Avg Latency</h2>
+            <p id="avg-latency">- ms</p>
+        </article>
+        <article class="panel metric-card">
+            <h2>Avg Packet Loss</h2>
+            <p id="avg-packet-loss">- %</p>
+        </article>
+        <article class="panel metric-card">
+            <h2>Availability</h2>
+            <p id="availability">- %</p>
+        </article>
+    </section>
+
+    <section class="panel chart-panel">
+        <div class="panel-head">
+            <h2>Latency and Packet Loss</h2>
+            <button id="refresh" type="button">Refresh</button>
         </div>
-    </div>
+        <div id="feedback" class="feedback"></div>
+        <div id="chart"></div>
+    </section>
 </main>
-<script type="module" src="/static/beer.min.js"></script>
-<script type="module" src="/static/material-dynamic-colors.min.js"></script>
-<script src="/static/jquery-3.7.1.min.js"></script>
+
 <script src="/static/echarts.min.js"></script>
 <script src="/static/custom.js"></script>
 </body>
