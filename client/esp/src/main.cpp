@@ -136,8 +136,15 @@ void saveConfigCallback() { gShouldSaveConfig = true; }
 
 bool beginStorage() {
   if (!LittleFS.begin()) {
-    Serial.println("LittleFS init failed");
-    return false;
+    Serial.println("LittleFS init failed, formatting...");
+    if (!LittleFS.format()) {
+      Serial.println("LittleFS format failed");
+      return false;
+    }
+    if (!LittleFS.begin()) {
+      Serial.println("LittleFS init failed after format");
+      return false;
+    }
   }
   return true;
 }
@@ -202,7 +209,11 @@ bool saveConfig() {
   doc["interval_ms"] = gConfig.telemetryIntervalMs;
 
   bool ok = serializeJson(doc, file) > 0;
+  file.flush();
   file.close();
+  if (ok) {
+    Serial.printf("Saved config to %s\n", kConfigPath);
+  }
   return ok;
 }
 
@@ -287,7 +298,7 @@ void connectWiFi() {
 
   applyConfigFromPortal(serverURLParam, deviceTokenParam, pingTargetParam,
                         probeCountParam, intervalParam);
-  if (gShouldSaveConfig) {
+  if (gShouldSaveConfig || !LittleFS.exists(kConfigPath)) {
     if (saveConfig()) {
       Serial.println("Config saved");
     } else {
@@ -308,7 +319,11 @@ void setup() {
   Serial.println("uCPingGraph client booting...");
 
   beginStorage();
-  loadConfig();
+  if (loadConfig()) {
+    Serial.println("Config loaded from LittleFS");
+  } else {
+    Serial.println("No saved config found");
+  }
   connectWiFi();
 }
 
