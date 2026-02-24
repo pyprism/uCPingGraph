@@ -20,6 +20,9 @@
 
 const char *kWiFiPortalSSID = "uCPingGraph-Setup";
 const char *kConfigPath = "/ucpinggraph.json";
+const uint8_t kResetButtonPin = 14; // D5 on ESP8266, GPIO14 on ESP32
+const uint8_t kBootButtonPin = 0;   // BOOT button on many ESP32/ESP8266 boards
+const unsigned long kResetHoldMs = 5000;
 
 struct DeviceConfig {
   String serverBaseURL = "";
@@ -222,6 +225,64 @@ bool hasRequiredConfig() {
          !gConfig.pingTarget.isEmpty();
 }
 
+void factoryResetAndReboot() {
+  Serial.println("Factory reset requested: clearing WiFi and config");
+
+  WiFiManager wifiManager;
+  wifiManager.resetSettings();
+
+  if (LittleFS.exists(kConfigPath)) {
+    if (LittleFS.remove(kConfigPath)) {
+      Serial.println("Deleted saved config file");
+    } else {
+      Serial.println("Failed to delete saved config file");
+    }
+  }
+
+#if defined(ESP8266)
+  WiFi.disconnect(true);
+#else
+  WiFi.disconnect(true, true);
+#endif
+  delay(500);
+  ESP.restart();
+}
+
+void handleResetButton() {
+  static bool pressed = false;
+  static unsigned long pressedAt = 0;
+  const bool isPressed =
+      (digitalRead(kResetButtonPin) == LOW) || (digitalRead(kBootButtonPin) == LOW);
+
+  if (isPressed && !pressed) {
+    pressed = true;
+    pressedAt = millis();
+    Serial.println("Reset button pressed; hold to factory reset");
+  } else if (!isPressed && pressed) {
+    pressed = false;
+    Serial.println("Reset button released");
+  }
+
+  if (pressed && (millis() - pressedAt >= kResetHoldMs)) {
+    factoryResetAndReboot();
+  }
+}
+
+void checkBootResetRequest() {
+  if (digitalRead(kResetButtonPin) == LOW || digitalRead(kBootButtonPin) == LOW) {
+    Serial.println("Reset button held at boot. Keep holding for factory reset...");
+    unsigned long start = millis();
+    while (millis() - start < kResetHoldMs) {
+      if (digitalRead(kResetButtonPin) != LOW && digitalRead(kBootButtonPin) != LOW) {
+        Serial.println("Boot reset canceled");
+        return;
+      }
+      delay(20);
+    }
+    factoryResetAndReboot();
+  }
+}
+
 void applyConfigFromPortal(WiFiManagerParameter &serverURLParam,
                            WiFiManagerParameter &deviceTokenParam,
                            WiFiManagerParameter &pingTargetParam,
@@ -314,11 +375,14 @@ void connectWiFi() {
 void setup() {
   Serial.begin(115200);
   delay(100);
+  pinMode(kResetButtonPin, INPUT_PULLUP);
+  pinMode(kBootButtonPin, INPUT_PULLUP);
 
   Serial.println();
   Serial.println("uCPingGraph client booting...");
 
   beginStorage();
+  checkBootResetRequest();
   if (loadConfig()) {
     Serial.println("Config loaded from LittleFS");
   } else {
@@ -328,6 +392,8 @@ void setup() {
 }
 
 void loop() {
+  handleResetButton();
+
   static unsigned long lastSentAt = 0;
   const unsigned long now = millis();
   if (now - lastSentAt < gConfig.telemetryIntervalMs) {

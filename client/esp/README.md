@@ -23,6 +23,15 @@ Portal fields:
 
 Values are persisted in LittleFS at `/ucpinggraph.json`.
 
+## Runtime Factory Reset Button
+
+- Pin: `GPIO14` (`D5` on NodeMCU ESP8266)
+- Wiring: connect button between `GPIO14` and `GND`
+- Action: press and hold for 5 seconds to:
+  - clear WiFi credentials (WiFiManager reset)
+  - delete saved `/ucpinggraph.json`
+  - reboot into fresh setup state
+
 ## Build
 
 ```bash
