@@ -3,10 +3,11 @@ package prompts
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/pyprism/uCPingGraph/utils"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/pyprism/uCPingGraph/utils"
 )
 
 func GenerateDummyData() {
@@ -57,9 +58,10 @@ func GenerateDummyData() {
 			log.Println("http failed: ", err)
 			return
 		}
-		defer resp.Body.Close()
 
 		log.Println("dummy response Status:", resp.Status)
+		_ = resp.Body.Close()
+
 		time.Sleep(time.Duration(utils.RandomInt()) * time.Second)
 	}
 
