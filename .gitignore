@@ -28,3 +28,4 @@ server/main
 .DS_Store
 server/uCPingGraph
 server/deploy/hosts
+server/logs/
