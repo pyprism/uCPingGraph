@@ -1,12 +1,14 @@
 package service
 
 import (
-	"github.com/pyprism/uCPingGraph/models"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/pyprism/uCPingGraph/logger"
+	"github.com/pyprism/uCPingGraph/models"
+	"go.uber.org/zap"
 )
 
 func CleanDB() {
@@ -20,12 +22,16 @@ func CleanDB() {
 		for {
 			stats := models.Stat{}
 			if err := stats.Cleanup(); err != nil {
-				log.Printf("cleanup job failed: %v", err)
+				logger.CaptureError(err, "cleanup job failed")
+			} else {
+				logger.Get().Info("cleanup job completed successfully")
 			}
 
 			<-ticker.C
 		}
 	}()
 
-	<-done
+	logger.Get().Info("cleanup cron started, waiting for signal")
+	sig := <-done
+	logger.Get().Info("received signal, shutting down", zap.String("signal", sig.String()))
 }
