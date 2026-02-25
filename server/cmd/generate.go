@@ -16,7 +16,9 @@ var generateData = &cobra.Command{
 	Short: "Generate dummy data",
 	Long:  `Generate dummy data for development`,
 	Run: func(cmd *cobra.Command, args []string) {
-		models.ConnectDb()
+		if err := models.ConnectDb(); err != nil {
+			log.Fatalf("failed to connect database: %v", err)
+		}
 		log.Println("generating dummy data")
 		prompts.GenerateDummyData()
 	},

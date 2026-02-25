@@ -1,0 +1,313 @@
+---
+# uCPingGraph – Unified Deployment Playbook
+#
+# Everything is driven by deploy_config.yaml — no separate hosts/inventory file needed.
+#
+# Usage:
+#   1. Copy deploy_config.example.yaml → deploy_config.yaml and fill in values.
+#   2. Run with tags:
+#
+#   Fresh systemd deployment (clone + build + install service):
+#     ansible-playbook deploy.yaml -e @deploy_config.yaml --tags fresh
+#
+#   Update systemd deployment (pull + build + restart):
+#     ansible-playbook deploy.yaml -e @deploy_config.yaml --tags update
+#
+#   Fresh Docker deployment (clone + docker compose up):
+#     ansible-playbook deploy.yaml -e @deploy_config.yaml --tags docker-fresh
+#
+#   Update Docker deployment (pull + rebuild + restart containers):
+#     ansible-playbook deploy.yaml -e @deploy_config.yaml --tags docker-update
+#
+#   Docker prune (clean unused images/containers):
+#     ansible-playbook deploy.yaml -e @deploy_config.yaml --tags docker-prune
+
+# ── Play 1: Build dynamic inventory from deploy_config.yaml ──────────────────
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  tags: [always]
+
+  tasks:
+    - name: Build inventory from deploy_config.yaml
+      add_host:
+        name: "{{ ssh_host }}"
+        groups: target
+        ansible_user: "{{ ssh_user }}"
+        ansible_port: "{{ ssh_port | default(22) }}"
+        ansible_ssh_private_key_file: "{{ ssh_key_file | default(omit) }}"
+        ansible_ssh_pass: "{{ ssh_pass | default(omit) }}"
+        deploy_dir: "{{ deploy_dir }}"
+        go_bin_path: "{{ go_bin_path }}"
+        git_repo: "{{ git_repo }}"
+        git_branch: "{{ git_branch | default('master') }}"
+        git_token: "{{ git_token | default('') }}"
+        service_name: "{{ service_name | default('ucpinggraph') }}"
+        binary_name: "{{ binary_name | default('uCPingGraph') }}"
+        docker_compose_file: "{{ docker_compose_file | default('docker-compose.production.yaml') }}"
+        env_vars: "{{ env_vars | default({}) }}"
+
+# ── Play 2: Run deployment on the target server ─────────────────────────────
+- hosts: target
+  become: yes
+  become_user: "{{ ansible_user }}"
+  become_flags: "-E"
+  gather_facts: yes
+
+
+  tasks:
+    # ─────────────────────────────────────────────────────────────────────────
+    #  FRESH DEPLOYMENT (systemd) – clone, build, install service, start
+    # ─────────────────────────────────────────────────────────────────────────
+
+    - name: "[fresh] Clone repository (public)"
+      git:
+        repo: "{{ git_repo }}"
+        dest: "{{ deploy_dir | dirname | dirname }}"
+        version: "{{ git_branch }}"
+        update: no
+      when: git_token == ""
+      tags: [fresh]
+
+    - name: "[fresh] Clone repository (private)"
+      git:
+        repo: "https://{{ git_token }}@{{ git_repo | regex_replace('^https?://', '') }}"
+        dest: "{{ deploy_dir | dirname | dirname }}"
+        version: "{{ git_branch }}"
+        update: no
+      when: git_token != ""
+      tags: [fresh]
+
+    - name: "[fresh] Create required directories"
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        mode: "0755"
+      loop:
+        - "{{ deploy_dir }}/storage/db"
+        - "{{ deploy_dir }}/logs"
+      tags: [fresh]
+
+    - name: "[fresh] Write .env file"
+      copy:
+        dest: "{{ deploy_dir }}/.env"
+        content: |
+          {% for key, value in env_vars.items() %}
+          {{ key }}={{ value }}
+          {% endfor %}
+        owner: "{{ ansible_user }}"
+        mode: "0600"
+      when: env_vars | length > 0
+      tags: [fresh]
+
+    - name: "[fresh] Download Go modules"
+      command: go mod download
+      args:
+        chdir: "{{ deploy_dir }}"
+      environment:
+        PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
+        HOME: "/home/{{ ansible_user }}"
+      tags: [fresh]
+
+    - name: "[fresh] Build binary"
+      command: go build -o {{ binary_name }} .
+      args:
+        chdir: "{{ deploy_dir }}"
+      environment:
+        PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
+        HOME: "/home/{{ ansible_user }}"
+        CGO_ENABLED: "1"
+      tags: [fresh]
+
+    - name: "[fresh] Install systemd service"
+      become_user: root
+      template:
+        src: systemd/ucpinggraph.service
+        dest: /etc/systemd/system/{{ service_name }}.service
+        mode: "0644"
+      tags: [fresh]
+
+    - name: "[fresh] Reload systemd daemon"
+      become_user: root
+      systemd:
+        daemon_reload: yes
+      tags: [fresh]
+
+    - name: "[fresh] Enable and start service"
+      become_user: root
+      systemd:
+        name: "{{ service_name }}"
+        enabled: yes
+        state: started
+      tags: [fresh]
+
+    # ─────────────────────────────────────────────────────────────────────────
+    #  UPDATE DEPLOYMENT (systemd) – pull, build, restart
+    # ─────────────────────────────────────────────────────────────────────────
+
+    - name: "[update] Pull latest changes (public)"
+      git:
+        repo: "{{ git_repo }}"
+        dest: "{{ deploy_dir | dirname | dirname }}"
+        version: "{{ git_branch }}"
+        update: yes
+        force: yes
+      when: git_token == ""
+      tags: [update]
+
+    - name: "[update] Pull latest changes (private)"
+      git:
+        repo: "https://{{ git_token }}@{{ git_repo | regex_replace('^https?://', '') }}"
+        dest: "{{ deploy_dir | dirname | dirname }}"
+        version: "{{ git_branch }}"
+        update: yes
+        force: yes
+      when: git_token != ""
+      tags: [update]
+
+    - name: "[update] Write .env file"
+      copy:
+        dest: "{{ deploy_dir }}/.env"
+        content: |
+          {% for key, value in env_vars.items() %}
+          {{ key }}={{ value }}
+          {% endfor %}
+        owner: "{{ ansible_user }}"
+        mode: "0600"
+      when: env_vars | length > 0
+      tags: [update]
+
+    - name: "[update] Download Go modules"
+      command: go mod download
+      args:
+        chdir: "{{ deploy_dir }}"
+      environment:
+        PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
+        HOME: "/home/{{ ansible_user }}"
+      tags: [update]
+
+    - name: "[update] Build binary"
+      command: go build -o {{ binary_name }} .
+      args:
+        chdir: "{{ deploy_dir }}"
+      environment:
+        PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
+        HOME: "/home/{{ ansible_user }}"
+        CGO_ENABLED: "1"
+      tags: [update]
+
+    - name: "[update] Restart systemd service"
+      become_user: root
+      systemd:
+        name: "{{ service_name }}"
+        state: restarted
+      tags: [update]
+
+    # ─────────────────────────────────────────────────────────────────────────
+    #  FRESH DOCKER DEPLOYMENT – clone, docker compose up
+    # ─────────────────────────────────────────────────────────────────────────
+
+    - name: "[docker-fresh] Clone repository (public)"
+      git:
+        repo: "{{ git_repo }}"
+        dest: "{{ deploy_dir | dirname | dirname }}"
+        version: "{{ git_branch }}"
+        update: no
+      when: git_token == ""
+      tags: [docker-fresh]
+
+    - name: "[docker-fresh] Clone repository (private)"
+      git:
+        repo: "https://{{ git_token }}@{{ git_repo | regex_replace('^https?://', '') }}"
+        dest: "{{ deploy_dir | dirname | dirname }}"
+        version: "{{ git_branch }}"
+        update: no
+      when: git_token != ""
+      tags: [docker-fresh]
+
+    - name: "[docker-fresh] Create required directories"
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        mode: "0755"
+      loop:
+        - "{{ deploy_dir }}/storage/db"
+        - "{{ deploy_dir }}/logs"
+      tags: [docker-fresh]
+
+    - name: "[docker-fresh] Write .env file"
+      copy:
+        dest: "{{ deploy_dir }}/.env"
+        content: |
+          {% for key, value in env_vars.items() %}
+          {{ key }}={{ value }}
+          {% endfor %}
+        owner: "{{ ansible_user }}"
+        mode: "0600"
+      when: env_vars | length > 0
+      tags: [docker-fresh]
+
+    - name: "[docker-fresh] Build and start containers"
+      command: docker compose -f {{ docker_compose_file }} up --build -d
+      args:
+        chdir: "{{ deploy_dir }}"
+      tags: [docker-fresh]
+
+    # ─────────────────────────────────────────────────────────────────────────
+    #  UPDATE DOCKER DEPLOYMENT – pull, rebuild, restart containers
+    # ─────────────────────────────────────────────────────────────────��───────
+
+    - name: "[docker-update] Pull latest changes (public)"
+      git:
+        repo: "{{ git_repo }}"
+        dest: "{{ deploy_dir | dirname | dirname }}"
+        version: "{{ git_branch }}"
+        update: yes
+        force: yes
+      when: git_token == ""
+      tags: [docker-update]
+
+    - name: "[docker-update] Pull latest changes (private)"
+      git:
+        repo: "https://{{ git_token }}@{{ git_repo | regex_replace('^https?://', '') }}"
+        dest: "{{ deploy_dir | dirname | dirname }}"
+        version: "{{ git_branch }}"
+        update: yes
+        force: yes
+      when: git_token != ""
+      tags: [docker-update]
+
+    - name: "[docker-update] Write .env file"
+      copy:
+        dest: "{{ deploy_dir }}/.env"
+        content: |
+          {% for key, value in env_vars.items() %}
+          {{ key }}={{ value }}
+          {% endfor %}
+        owner: "{{ ansible_user }}"
+        mode: "0600"
+      when: env_vars | length > 0
+      tags: [docker-update]
+
+    - name: "[docker-update] Stop running containers"
+      command: docker compose -f {{ docker_compose_file }} down
+      args:
+        chdir: "{{ deploy_dir }}"
+      tags: [docker-update]
+
+    - name: "[docker-update] Rebuild and start containers"
+      command: docker compose -f {{ docker_compose_file }} up --force-recreate --build -d
+      args:
+        chdir: "{{ deploy_dir }}"
+      tags: [docker-update]
+
+    # ─────────────────────────────────────────────────────────────────────────
+    #  DOCKER PRUNE – clean unused images, containers, volumes
+    # ─────────────────────────────────────────────────────────────────────────
+
+    - name: "[docker-prune] Prune unused Docker resources"
+      command: docker system prune -a -f
+      tags: [docker-prune]
+

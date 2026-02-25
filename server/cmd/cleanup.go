@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"github.com/pyprism/uCPingGraph/logger"
 	"github.com/pyprism/uCPingGraph/models"
 	"github.com/pyprism/uCPingGraph/service"
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 )
 
 func init() {
@@ -15,7 +17,12 @@ var cleanCmd = &cobra.Command{
 	Short: "Clean old data",
 	Long:  `Clean old data from the database.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		models.ConnectDb()
+		logger.Init()
+		defer logger.Shutdown()
+
+		if err := models.ConnectDb(); err != nil {
+			logger.Get().Fatal("failed to connect database", zap.Error(err))
+		}
 		service.CleanDB()
 	},
 }

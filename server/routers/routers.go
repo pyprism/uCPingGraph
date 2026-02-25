@@ -1,54 +1,55 @@
 package routers
 
 import (
+	"os"
+	"time"
+
+	"github.com/getsentry/sentry-go/gin"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	limits "github.com/gin-contrib/size"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/pyprism/uCPingGraph/controllers"
-	"go.uber.org/zap"
-	"os"
-	"time"
+	"github.com/pyprism/uCPingGraph/logger"
 )
 
 func NewRouter() *gin.Engine {
-	var logger *zap.Logger
-
 	router := gin.New()
 	router.Static("/static", "./static")
 	router.LoadHTMLGlob("templates/*.html")
 
+	zapLogger := logger.Get()
+
 	if os.Getenv("DEBUG") != "True" {
 		gin.SetMode(gin.ReleaseMode)
-		logger, _ = zap.NewProduction()
-		router.Use(ginzap.Ginzap(logger, time.RFC3339, true))
-		router.Use(ginzap.RecoveryWithZap(logger, true))
 	}
 
-	router.SetTrustedProxies([]string{"127.0.0.1"})
-	router.Use(gin.Logger())
-	router.Use(gin.Recovery())
+	router.Use(ginzap.Ginzap(zapLogger, time.RFC3339, true))
+	router.Use(ginzap.RecoveryWithZap(zapLogger, true))
+	router.Use(sentrygin.New(sentrygin.Options{Repanic: true}))
+
+	_ = router.SetTrustedProxies(nil)
 	router.Use(cors.Default())
 	router.Use(gzip.Gzip(gzip.BestCompression))
-	router.Use(limits.RequestSizeLimiter(10000)) // 10KB
+	router.Use(limits.RequestSizeLimiter(32 * 1024))
 
 	api := new(controllers.APIController)
 	index := new(controllers.IndexController)
-	other := new(controllers.CommonController)
 
 	router.GET("/", index.Home)
-	router.POST("/device/", index.GetDeviceList)
-	router.POST("/chart/", index.Chart)
-	router.GET("/:static", other.StaticFile)
-	router.POST("/api/stats/", api.PostStats)
-
-	// for debug
-	router.GET("/status/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"hi": "hiren",
-		})
+	router.GET("/healthz", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
 	})
+
+	apiGroup := router.Group("/api")
+	{
+		apiGroup.POST("/stats", api.PostStats)
+		apiGroup.POST("/stats/", api.PostStats)
+		apiGroup.GET("/networks", api.Networks)
+		apiGroup.GET("/networks/:network/devices", api.DevicesByNetwork)
+		apiGroup.GET("/series", api.Series)
+	}
 
 	return router
 }

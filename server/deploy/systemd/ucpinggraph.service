@@ -1,20 +1,22 @@
 [Unit]
 Description=Instance to serve μCPingGraph
+After=network.target
 
 [Service]
 Type=simple
+User={{ ansible_user }}
+WorkingDirectory={{ deploy_dir }}
+ExecStart={{ deploy_dir }}/{{ binary_name }} server
 Restart=always
 RestartSec=5s
-ExecStart=/bin/bash -c 'su prism; cd /path/to/project/uCPingGraph/server/; ./uCPingGraph server'
 # Specifies the maximum file descriptor number that can be opened by this process
 LimitNOFILE=65536
-
 # Specifies the maximum number of threads this process can create
 TasksMax=infinity
-
 # Disable timeout logic and wait until process is stopped
 TimeoutStopSec=infinity
 SendSIGKILL=no
+EnvironmentFile={{ deploy_dir }}/.env
 
 [Install]
 WantedBy=multi-user.target

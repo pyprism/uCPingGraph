@@ -8,6 +8,7 @@ services:
       - .env
     volumes:
       - ./storage/:/app/storage/
+      - ./logs/:/app/logs/
     ports:
       - "127.0.0.1:${SERVER_PORT}:${SERVER_PORT}"
     restart: always
@@ -22,5 +23,6 @@ services:
       - .env
     volumes:
       - ./storage/:/app/storage/
+      - ./logs/:/app/logs/
     restart: always
     command: ["/app/main", "cleanup"]

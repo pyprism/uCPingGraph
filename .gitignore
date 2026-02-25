@@ -27,4 +27,5 @@ server/storage/db/*
 server/main
 .DS_Store
 server/uCPingGraph
-server/deploy/hosts
+server/deploy/deploy_config.yaml
+server/logs/

@@ -1,27 +1,37 @@
 package service
 
 import (
-	"github.com/pyprism/uCPingGraph/models"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/pyprism/uCPingGraph/logger"
+	"github.com/pyprism/uCPingGraph/models"
+	"go.uber.org/zap"
 )
 
 func CleanDB() {
 	done := make(chan os.Signal, 1)
+	signal.Notify(done, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+
 		for {
 			stats := models.Stat{}
-			err := stats.Cleanup()
-			if err != nil {
-				panic(err)
+			if err := stats.Cleanup(); err != nil {
+				logger.CaptureError(err, "cleanup job failed")
+			} else {
+				logger.Get().Info("cleanup job completed successfully")
 			}
-			<-time.After(time.Duration(24) * time.Hour)
+
+			<-ticker.C
 		}
 	}()
 
-	<-done
-	signal.Notify(done, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	logger.Get().Info("cleanup cron started, waiting for signal")
+	sig := <-done
+	logger.Get().Info("received signal, shutting down", zap.String("signal", sig.String()))
 }

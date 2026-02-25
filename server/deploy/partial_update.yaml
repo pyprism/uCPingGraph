@@ -1,4 +1,0 @@
----
-- import_playbook: partials/git_pull.yaml
-- import_playbook: partials/build_binary.yaml
-- import_playbook: partials/restart_systemd.yaml

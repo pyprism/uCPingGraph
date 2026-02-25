@@ -1,35 +1,132 @@
+# uCPingGraph Server
+
+## Run
+
+```bash
+go run . server
+```
+
+Default URL: `http://127.0.0.1:8080`
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+| Variable        | Default         | Description                                   |
+| --------------- | --------------- | --------------------------------------------- |
+| `SERVER_PORT`   | `8080`          | HTTP listen port                              |
+| `DEBUG`         | `""`            | Set to `True` for debug mode                  |
+| `DB_PATH`       | `./storage/db/uCPingGraph.db` | SQLite database path              |
+| `CLEANUP_DAYS`  | `30`            | Days of stats to retain                       |
+| `LOG_DIR`       | `./logs`        | Directory for rotated log files               |
+| `SENTRY_DSN`    | `""`            | Sentry DSN for error tracking (optional)      |
+| `APP_ENV`       | `production`    | Environment label for Sentry                  |
+
+## Logging
+
+The server writes structured JSON logs to `logs/server.log` (rotated at 50 MB, 5 backups, 30-day retention, compressed) and human-readable logs to stdout.
+
+## Sentry
+
+Set `SENTRY_DSN` in your `.env` to enable error tracking. Errors are automatically captured and reported.
+
+## CLI
+
+```bash
+go run . network add
+go run . device add
+go run . generate
+go run . cleanup
+```
+
+## API
+
+### `POST /api/stats`
+
+Headers:
+
+- `Authorization: <device_token>`
+- `Content-Type: application/json`
+
+Body:
+
+```json
+{
+  "latency_ms": 14.2,
+  "sent_packets": 5,
+  "received_packets": 4,
+  "packet_loss_percent": 20,
+  "target": "1.1.1.1",
+  "platform": "esp8266",
+  "rssi": -68
+}
+```
+
+Notes:
+
+- `latency` (legacy key) is still accepted for backward compatibility.
+- If packet-loss is omitted, it is derived from sent/received counters.
+
+### `GET /api/networks`
+
+Returns network list for dashboard selectors.
+
+### `GET /api/networks/:network/devices`
+
+Returns device list for a given network.
+
+### `GET /api/series?network=<name>&device=<name>&minutes=<1-10080>`
+
+Returns chart series and summary metrics.
 
 ## Deployment
 
- - Install [Docker](https://docs.docker.com/engine/installation/)
- - Install [Docker Compose](https://docs.docker.com/compose/install/)
- - Clone this repository
- - Copy .env.example to .env and fill in the values
- - Run `docker compose -f docker-compose.production.yaml up -d` in the server directory
+All deployment is managed via a single Ansible playbook and a single config file in `deploy/`. No separate inventory/hosts file is needed — the host is built dynamically from `deploy_config.yaml`.
 
-### Commands
+### Setup
 
- ##### To add new network
-`docker compose -f docker-compose.production.yaml exec pgraph /app/main network add`
- ##### To add new device
-`docker compose -f docker-compose.production.yaml exec pgraph /app/main device add`
-###### Copy the token and paste it in the device's config file 
+```bash
+cd deploy
+cp deploy_config.example.yaml deploy_config.yaml
+# Edit deploy_config.yaml with your server details (ssh_host, ssh_user, deploy_dir, etc.)
+```
 
-##### Update instance
+### Fresh systemd deployment (clone + build + install service)
+
+```bash
+ansible-playbook deploy.yaml -e @deploy_config.yaml --tags fresh
 ```
-git pull
-docker compose -f docker-compose.production.yaml build
-docker compose -f docker-compose.production.yaml up -d
+
+### Update systemd deployment (pull + rebuild + restart)
+
+```bash
+ansible-playbook deploy.yaml -e @deploy_config.yaml --tags update
 ```
-### Endpoints
-###### `POST /api/stats` For pushing data from client to server
-Required Header:
+
+### Fresh Docker deployment (clone + docker compose up)
+
+```bash
+ansible-playbook deploy.yaml -e @deploy_config.yaml --tags docker-fresh
 ```
-Authorization: <Token>
+
+### Update Docker deployment (pull + rebuild containers)
+
+```bash
+ansible-playbook deploy.yaml -e @deploy_config.yaml --tags docker-update
 ```
-Body:
+
+### Docker prune
+
+```bash
+ansible-playbook deploy.yaml -e @deploy_config.yaml --tags docker-prune
 ```
-{
-    "latency": 11.2
-}
+
+### Private repositories
+
+Set `git_token` in `deploy_config.yaml` to a GitHub PAT or deploy token. The playbook automatically constructs the authenticated URL.
+
+## Tests
+
+```bash
+go test ./...
 ```

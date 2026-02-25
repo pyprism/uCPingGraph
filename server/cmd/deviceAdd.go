@@ -4,6 +4,7 @@ import (
 	"github.com/pyprism/uCPingGraph/models"
 	"github.com/pyprism/uCPingGraph/prompts"
 	"github.com/spf13/cobra"
+	"log"
 )
 
 func init() {
@@ -15,7 +16,9 @@ var deviceAddCmd = &cobra.Command{
 	Short: "Add a network to the database",
 	Long:  `Add a network to the database.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		models.ConnectDb()
+		if err := models.ConnectDb(); err != nil {
+			log.Fatalf("failed to connect database: %v", err)
+		}
 		prompts.AddNewDevice()
 	},
 }
