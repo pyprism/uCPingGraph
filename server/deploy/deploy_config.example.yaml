@@ -1,0 +1,40 @@
+# uCPingGraph Deployment Configuration
+# Copy this file to deploy_config.yaml and fill in your values.
+
+# ─── SSH / Host ──────────────────────────────────────────────────────────────
+ssh_user: "prism"
+ssh_host: "192.168.1.100"
+ssh_port: 22
+# Use one of: ssh_pass or ssh_key_file
+ssh_pass: ""
+ssh_key_file: "~/.ssh/id_rsa"
+
+# ─── Deployment Paths ────────────────────────────────────────────────────────
+deploy_dir: "/home/prism/uCPingGraph/server"
+go_bin_path: "/usr/local/go/bin:/home/prism/go/bin"
+
+# ─── Git Repository ─────────────────────────────────────────────────────────
+# For public repos, just set git_repo.
+# For private repos, also set git_token (GitHub PAT / deploy key token).
+git_repo: "https://github.com/pyprism/uCPingGraph.git"
+git_branch: "master"
+git_token: ""  # Leave empty for public repos
+
+# ─── Service ─────────────────────────────────────────────────────────────────
+service_name: "ucpinggraph"
+binary_name: "uCPingGraph"
+
+# ─── Docker (only needed for docker-based deployments) ───────────────────────
+docker_compose_file: "docker-compose.production.yaml"
+
+# ─── Application Environment Variables ───────────────────────────────────────
+# These will be written to .env on the server during deployment.
+env_vars:
+  SERVER_PORT: "8080"
+  DEBUG: ""
+  DB_PATH: "./storage/db/uCPingGraph.db"
+  CLEANUP_DAYS: "30"
+  LOG_DIR: "./logs"
+  SENTRY_DSN: ""
+  APP_ENV: "production"
+
