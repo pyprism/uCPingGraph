@@ -10,8 +10,10 @@ ssh_pass: ""
 ssh_key_file: "~/.ssh/id_rsa"
 
 # ─── Deployment Paths ────────────────────────────────────────────────────────
-deploy_dir: "/home/prism/uCPingGraph/server"
-go_bin_path: "/usr/local/go/bin:/home/prism/go/bin"
+# deploy_dir is the PARENT directory — the repo will be cloned into deploy_dir/<repo_name>/
+# e.g. with deploy_dir "/home/prism/prod" → repo cloned to /home/prism/prod/uCPingGraph/
+deploy_dir: "/home/prism/prod"
+go_bin_path: "/usr/local/go/bin:/home/linuxbrew/.linuxbrew/bin/"
 
 # ─── Git Repository ─────────────────────────────────────────────────────────
 # For public repos, just set git_repo.

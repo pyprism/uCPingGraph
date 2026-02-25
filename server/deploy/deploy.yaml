@@ -28,6 +28,11 @@
   gather_facts: no
   tags: [always]
 
+  vars:
+    _repo_name: "{{ git_repo | basename | regex_replace('\\.git$', '') }}"
+    _repo_dir: "{{ deploy_dir | regex_replace('/$', '') }}/{{ _repo_name }}"
+    _server_dir: "{{ _repo_dir }}/server"
+
   tasks:
     - name: Build inventory from deploy_config.yaml
       add_host:
@@ -38,6 +43,8 @@
         ansible_ssh_private_key_file: "{{ ssh_key_file | default(omit) }}"
         ansible_ssh_pass: "{{ ssh_pass | default(omit) }}"
         deploy_dir: "{{ deploy_dir }}"
+        repo_dir: "{{ _repo_dir }}"
+        server_dir: "{{ _server_dir }}"
         go_bin_path: "{{ go_bin_path }}"
         git_repo: "{{ git_repo }}"
         git_branch: "{{ git_branch | default('master') }}"
@@ -54,28 +61,50 @@
   become_flags: "-E"
   gather_facts: yes
 
+  vars:
+    _git_url: >-
+      {% if git_token | default('') | length > 0 -%}
+        https://{{ git_token }}@{{ git_repo | regex_replace('^https?://', '') }}
+      {%- else -%}
+        {{ git_repo }}
+      {%- endif %}
 
   tasks:
     # ─────────────────────────────────────────────────────────────────────────
     #  FRESH DEPLOYMENT (systemd) – clone, build, install service, start
     # ─────────────────────────────────────────────────────────────────────────
 
-    - name: "[fresh] Clone repository (public)"
-      git:
-        repo: "{{ git_repo }}"
-        dest: "{{ deploy_dir | dirname | dirname }}"
-        version: "{{ git_branch }}"
-        update: no
-      when: git_token == ""
+    - name: "[fresh] Ensure deploy parent directory exists"
+      file:
+        path: "{{ deploy_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        mode: "0755"
       tags: [fresh]
 
-    - name: "[fresh] Clone repository (private)"
+    - name: "[fresh] Check if repo is already cloned"
+      stat:
+        path: "{{ repo_dir }}/.git"
+      register: _git_dir_fresh
+      tags: [fresh]
+
+    - name: "[fresh] Clone repository"
       git:
-        repo: "https://{{ git_token }}@{{ git_repo | regex_replace('^https?://', '') }}"
-        dest: "{{ deploy_dir | dirname | dirname }}"
+        repo: "{{ _git_url }}"
+        dest: "{{ repo_dir }}"
         version: "{{ git_branch }}"
         update: no
-      when: git_token != ""
+      when: not _git_dir_fresh.stat.exists
+      tags: [fresh]
+
+    - name: "[fresh] Pull latest (repo already existed)"
+      git:
+        repo: "{{ _git_url }}"
+        dest: "{{ repo_dir }}"
+        version: "{{ git_branch }}"
+        update: yes
+        force: yes
+      when: _git_dir_fresh.stat.exists
       tags: [fresh]
 
     - name: "[fresh] Create required directories"
@@ -85,13 +114,13 @@
         owner: "{{ ansible_user }}"
         mode: "0755"
       loop:
-        - "{{ deploy_dir }}/storage/db"
-        - "{{ deploy_dir }}/logs"
+        - "{{ server_dir }}/storage/db"
+        - "{{ server_dir }}/logs"
       tags: [fresh]
 
     - name: "[fresh] Write .env file"
       copy:
-        dest: "{{ deploy_dir }}/.env"
+        dest: "{{ server_dir }}/.env"
         content: |
           {% for key, value in env_vars.items() %}
           {{ key }}={{ value }}
@@ -104,7 +133,7 @@
     - name: "[fresh] Download Go modules"
       command: go mod download
       args:
-        chdir: "{{ deploy_dir }}"
+        chdir: "{{ server_dir }}"
       environment:
         PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
         HOME: "/home/{{ ansible_user }}"
@@ -113,7 +142,7 @@
     - name: "[fresh] Build binary"
       command: go build -o {{ binary_name }} .
       args:
-        chdir: "{{ deploy_dir }}"
+        chdir: "{{ server_dir }}"
       environment:
         PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
         HOME: "/home/{{ ansible_user }}"
@@ -146,29 +175,18 @@
     #  UPDATE DEPLOYMENT (systemd) – pull, build, restart
     # ─────────────────────────────────────────────────────────────────────────
 
-    - name: "[update] Pull latest changes (public)"
+    - name: "[update] Pull latest changes"
       git:
-        repo: "{{ git_repo }}"
-        dest: "{{ deploy_dir | dirname | dirname }}"
+        repo: "{{ _git_url }}"
+        dest: "{{ repo_dir }}"
         version: "{{ git_branch }}"
         update: yes
         force: yes
-      when: git_token == ""
-      tags: [update]
-
-    - name: "[update] Pull latest changes (private)"
-      git:
-        repo: "https://{{ git_token }}@{{ git_repo | regex_replace('^https?://', '') }}"
-        dest: "{{ deploy_dir | dirname | dirname }}"
-        version: "{{ git_branch }}"
-        update: yes
-        force: yes
-      when: git_token != ""
       tags: [update]
 
     - name: "[update] Write .env file"
       copy:
-        dest: "{{ deploy_dir }}/.env"
+        dest: "{{ server_dir }}/.env"
         content: |
           {% for key, value in env_vars.items() %}
           {{ key }}={{ value }}
@@ -178,10 +196,21 @@
       when: env_vars | length > 0
       tags: [update]
 
+    - name: "[update] Create required directories"
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        mode: "0755"
+      loop:
+        - "{{ server_dir }}/storage/db"
+        - "{{ server_dir }}/logs"
+      tags: [update]
+
     - name: "[update] Download Go modules"
       command: go mod download
       args:
-        chdir: "{{ deploy_dir }}"
+        chdir: "{{ server_dir }}"
       environment:
         PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
         HOME: "/home/{{ ansible_user }}"
@@ -190,7 +219,7 @@
     - name: "[update] Build binary"
       command: go build -o {{ binary_name }} .
       args:
-        chdir: "{{ deploy_dir }}"
+        chdir: "{{ server_dir }}"
       environment:
         PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
         HOME: "/home/{{ ansible_user }}"
@@ -208,22 +237,37 @@
     #  FRESH DOCKER DEPLOYMENT – clone, docker compose up
     # ─────────────────────────────────────────────────────────────────────────
 
-    - name: "[docker-fresh] Clone repository (public)"
-      git:
-        repo: "{{ git_repo }}"
-        dest: "{{ deploy_dir | dirname | dirname }}"
-        version: "{{ git_branch }}"
-        update: no
-      when: git_token == ""
+    - name: "[docker-fresh] Ensure deploy parent directory exists"
+      file:
+        path: "{{ deploy_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        mode: "0755"
       tags: [docker-fresh]
 
-    - name: "[docker-fresh] Clone repository (private)"
+    - name: "[docker-fresh] Check if repo is already cloned"
+      stat:
+        path: "{{ repo_dir }}/.git"
+      register: _git_dir_docker_fresh
+      tags: [docker-fresh]
+
+    - name: "[docker-fresh] Clone repository"
       git:
-        repo: "https://{{ git_token }}@{{ git_repo | regex_replace('^https?://', '') }}"
-        dest: "{{ deploy_dir | dirname | dirname }}"
+        repo: "{{ _git_url }}"
+        dest: "{{ repo_dir }}"
         version: "{{ git_branch }}"
         update: no
-      when: git_token != ""
+      when: not _git_dir_docker_fresh.stat.exists
+      tags: [docker-fresh]
+
+    - name: "[docker-fresh] Pull latest (repo already existed)"
+      git:
+        repo: "{{ _git_url }}"
+        dest: "{{ repo_dir }}"
+        version: "{{ git_branch }}"
+        update: yes
+        force: yes
+      when: _git_dir_docker_fresh.stat.exists
       tags: [docker-fresh]
 
     - name: "[docker-fresh] Create required directories"
@@ -233,13 +277,13 @@
         owner: "{{ ansible_user }}"
         mode: "0755"
       loop:
-        - "{{ deploy_dir }}/storage/db"
-        - "{{ deploy_dir }}/logs"
+        - "{{ server_dir }}/storage/db"
+        - "{{ server_dir }}/logs"
       tags: [docker-fresh]
 
     - name: "[docker-fresh] Write .env file"
       copy:
-        dest: "{{ deploy_dir }}/.env"
+        dest: "{{ server_dir }}/.env"
         content: |
           {% for key, value in env_vars.items() %}
           {{ key }}={{ value }}
@@ -252,36 +296,25 @@
     - name: "[docker-fresh] Build and start containers"
       command: docker compose -f {{ docker_compose_file }} up --build -d
       args:
-        chdir: "{{ deploy_dir }}"
+        chdir: "{{ server_dir }}"
       tags: [docker-fresh]
 
     # ─────────────────────────────────────────────────────────────────────────
     #  UPDATE DOCKER DEPLOYMENT – pull, rebuild, restart containers
-    # ─────────────────────────────────────────────────────────────────��───────
+    # ─────────────────────────────────────────────────────────────────────────
 
-    - name: "[docker-update] Pull latest changes (public)"
+    - name: "[docker-update] Pull latest changes"
       git:
-        repo: "{{ git_repo }}"
-        dest: "{{ deploy_dir | dirname | dirname }}"
+        repo: "{{ _git_url }}"
+        dest: "{{ repo_dir }}"
         version: "{{ git_branch }}"
         update: yes
         force: yes
-      when: git_token == ""
-      tags: [docker-update]
-
-    - name: "[docker-update] Pull latest changes (private)"
-      git:
-        repo: "https://{{ git_token }}@{{ git_repo | regex_replace('^https?://', '') }}"
-        dest: "{{ deploy_dir | dirname | dirname }}"
-        version: "{{ git_branch }}"
-        update: yes
-        force: yes
-      when: git_token != ""
       tags: [docker-update]
 
     - name: "[docker-update] Write .env file"
       copy:
-        dest: "{{ deploy_dir }}/.env"
+        dest: "{{ server_dir }}/.env"
         content: |
           {% for key, value in env_vars.items() %}
           {{ key }}={{ value }}
@@ -294,13 +327,13 @@
     - name: "[docker-update] Stop running containers"
       command: docker compose -f {{ docker_compose_file }} down
       args:
-        chdir: "{{ deploy_dir }}"
+        chdir: "{{ server_dir }}"
       tags: [docker-update]
 
     - name: "[docker-update] Rebuild and start containers"
       command: docker compose -f {{ docker_compose_file }} up --force-recreate --build -d
       args:
-        chdir: "{{ deploy_dir }}"
+        chdir: "{{ server_dir }}"
       tags: [docker-update]
 
     # ─────────────────────────────────────────────────────────────────────────

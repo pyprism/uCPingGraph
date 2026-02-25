@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User={{ ansible_user }}
-WorkingDirectory={{ deploy_dir }}
-ExecStart={{ deploy_dir }}/{{ binary_name }} server
+WorkingDirectory={{ server_dir }}
+ExecStart={{ server_dir }}/{{ binary_name }} server
 Restart=always
 RestartSec=5s
 # Specifies the maximum file descriptor number that can be opened by this process
@@ -16,7 +16,7 @@ TasksMax=infinity
 # Disable timeout logic and wait until process is stopped
 TimeoutStopSec=infinity
 SendSIGKILL=no
-EnvironmentFile={{ deploy_dir }}/.env
+EnvironmentFile={{ server_dir }}/.env
 
 [Install]
 WantedBy=multi-user.target
