@@ -157,6 +157,14 @@
         mode: "0644"
       tags: [fresh]
 
+    - name: "[fresh] Install cleanup systemd service"
+      become_user: root
+      template:
+        src: systemd/ucpinggraph-cleanup.service
+        dest: /etc/systemd/system/{{ service_name }}-cleanup.service
+        mode: "0644"
+      tags: [fresh]
+
     - name: "[fresh] Reload systemd daemon"
       become_user: root
       systemd:
@@ -167,6 +175,14 @@
       become_user: root
       systemd:
         name: "{{ service_name }}"
+        enabled: yes
+        state: started
+      tags: [fresh]
+
+    - name: "[fresh] Enable and start cleanup service"
+      become_user: root
+      systemd:
+        name: "{{ service_name }}-cleanup"
         enabled: yes
         state: started
       tags: [fresh]
@@ -230,6 +246,13 @@
       become_user: root
       systemd:
         name: "{{ service_name }}"
+        state: restarted
+      tags: [update]
+
+    - name: "[update] Restart cleanup service"
+      become_user: root
+      systemd:
+        name: "{{ service_name }}-cleanup"
         state: restarted
       tags: [update]
 

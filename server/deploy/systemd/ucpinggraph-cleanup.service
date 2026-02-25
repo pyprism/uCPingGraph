@@ -1,0 +1,20 @@
+[Unit]
+Description=μCPingGraph Cleanup Cron (runs every 24h inside the process)
+After=network.target {{ service_name }}.service
+
+[Service]
+Type=simple
+User={{ ansible_user }}
+WorkingDirectory={{ server_dir }}
+ExecStart={{ server_dir }}/{{ binary_name }} cleanup
+Restart=always
+RestartSec=10s
+LimitNOFILE=65536
+TasksMax=infinity
+TimeoutStopSec=30
+SendSIGKILL=no
+EnvironmentFile={{ server_dir }}/.env
+
+[Install]
+WantedBy=multi-user.target
+
