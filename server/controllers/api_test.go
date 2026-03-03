@@ -88,6 +88,175 @@ func TestPostStatsCreatesRecord(t *testing.T) {
 	}
 }
 
+func TestPostStatsInvalidJSON(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token := setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(`{bad json`))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestPostStatsNegativeLatency(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token := setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	body := `{"latency_ms":-5,"sent_packets":1,"received_packets":1,"packet_loss_percent":0}`
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for negative latency, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPostStatsInvalidToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	body := `{"latency_ms":10,"sent_packets":1,"received_packets":1,"packet_loss_percent":0}`
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "invalid-token-here")
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for invalid token, got %d", rec.Code)
+	}
+}
+
+func TestPostStatsLegacyLatencyField(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token := setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	// Old clients send "latency" instead of "latency_ms"
+	body := `{"latency":15.5}`
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for legacy format, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPostStatsBackwardCompatZeroPackets(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token := setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	// Old client that only sends latency_ms, no packet info
+	body := `{"latency_ms":12.3}`
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for backward compat, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestNetworks(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.GET("/api/networks", api.Networks)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/networks", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp map[string][]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	items := resp["items"]
+	if len(items) != 1 || items[0] != "home" {
+		t.Fatalf("expected [home], got %v", items)
+	}
+}
+
+func TestDevicesByNetwork(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.GET("/api/networks/:network/devices", api.DevicesByNetwork)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/networks/home/devices", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var resp map[string][]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(resp["items"]) != 1 || resp["items"][0] != "esp32-main" {
+		t.Fatalf("expected [esp32-main], got %v", resp["items"])
+	}
+}
+
+func TestDevicesByNetworkNotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.GET("/api/networks/:network/devices", api.DevicesByNetwork)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/networks/nonexistent/devices", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
+	}
+}
+
 func TestSeriesReturnsSummary(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	token := setupControllerTestDB(t)
@@ -125,5 +294,72 @@ func TestSeriesReturnsSummary(t *testing.T) {
 	}
 	if len(payload.Series.LatencySeries) != 1 {
 		t.Fatalf("expected one latency datapoint, got %d", len(payload.Series.LatencySeries))
+	}
+}
+
+func TestSeriesMissingParams(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.GET("/api/series", api.Series)
+
+	// Missing both network and device
+	req := httptest.NewRequest(http.MethodGet, "/api/series?minutes=60", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", rec.Code)
+	}
+}
+
+func TestSeriesInvalidMinutes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.GET("/api/series", api.Series)
+
+	tests := []struct {
+		name    string
+		minutes string
+	}{
+		{"negative", "-1"},
+		{"zero", "0"},
+		{"too_large", "99999"},
+		{"non_numeric", "abc"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet,
+				"/api/series?network=home&device=esp32-main&minutes="+tt.minutes, nil)
+			rec := httptest.NewRecorder()
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("expected 400 for minutes=%s, got %d", tt.minutes, rec.Code)
+			}
+		})
+	}
+}
+
+func TestSeriesNotFoundDevice(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.GET("/api/series", api.Series)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/series?network=home&device=ghost&minutes=60", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", rec.Code)
 	}
 }
