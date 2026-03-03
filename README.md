@@ -1,4 +1,4 @@
-# uCPingGraph
+# uCPingGraph [![Server Tests](https://github.com/pyprism/uCPingGraph/actions/workflows/server-tests.yml/badge.svg)](https://github.com/pyprism/uCPingGraph/actions/workflows/server-tests.yml)
 
 uCPingGraph tracks network quality from microcontrollers and visualizes it in a web dashboard.
 
@@ -14,6 +14,12 @@ uCPingGraph tracks network quality from microcontrollers and visualizes it in a 
 - Latency + packet-loss telemetry ingestion
 - Dashboard with dual-series chart and summary cards
 - Backend unit tests for ingestion and API behavior
+
+## Screenshot
+
+![Dashboard screenshot][screenshot]
+
+[screenshot]: screenshot.png
 
 ## Quick Start
 
