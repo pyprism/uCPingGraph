@@ -3,9 +3,10 @@ package prompts
 import (
 	"errors"
 	"fmt"
-	"github.com/manifoldco/promptui"
 	"log"
 	"os"
+
+	"github.com/manifoldco/promptui"
 
 	"github.com/pyprism/uCPingGraph/models"
 )
@@ -87,7 +88,8 @@ func AddNewDevice() {
 	network := models.Network{}
 	networkId, err := network.GetNetworkIdByName(networkName)
 	if err != nil {
-		log.Println(err.Error())
+		log.Printf("Failed to get network ID: %v\n", err)
+		return
 	}
 
 	deviceNamePrompt := DevicePromptContent{
