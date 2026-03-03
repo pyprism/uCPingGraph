@@ -41,12 +41,12 @@ go run . device add
 
 - SSID: `uCPingGraph-Setup`
 
-4. Build firmware:
+4. Build and upload firmware:
 
 ```bash
 cd client/esp
-platformio run -e nodemcuv2
-platformio run -e esp32dev
+platformio run -e nodemcuv2 -t upload
+platformio run -e esp32dev -t upload
 ```
 
 See `server/README.md` and `client/esp/README.md` for details.
