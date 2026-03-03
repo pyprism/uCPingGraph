@@ -62,7 +62,11 @@ func GenerateDummyData() {
 		log.Println("dummy response Status:", resp.Status)
 		_ = resp.Body.Close()
 
-		time.Sleep(time.Duration(utils.RandomInt()) * time.Second)
+		sleepSec := utils.RandomInt()
+		if sleepSec < 1 {
+			sleepSec = 1
+		}
+		time.Sleep(time.Duration(sleepSec) * time.Second)
 	}
 
 }
