@@ -44,7 +44,8 @@ func (n *APIController) PostStats(c *gin.Context) {
 		latency = *req.LatencyLegacy
 	}
 	if latency < 0 {
-		latency = 0
+		c.JSON(http.StatusBadRequest, gin.H{"error": "latency must not be negative"})
+		return
 	}
 
 	sentPackets := req.SentPackets
@@ -62,7 +63,9 @@ func (n *APIController) PostStats(c *gin.Context) {
 		packetLoss = 0
 	}
 
-	if sentPackets > 0 {
+	// Only calculate loss from counters when the client did not provide an
+	// explicit packet_loss_percent value.
+	if req.PacketLossPercent == nil && sentPackets > 0 {
 		calculatedLoss := (float64(sentPackets-receivedPackets) / float64(sentPackets)) * 100
 		if calculatedLoss >= 0 && calculatedLoss <= 100 {
 			packetLoss = calculatedLoss
