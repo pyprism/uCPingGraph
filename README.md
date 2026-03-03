@@ -1,4 +1,4 @@
-# uCPingGraph [![Server Tests](https://github.com/pyprism/uCPingGraph/actions/workflows/server-tests.yml/badge.svg)](https://github.com/pyprism/uCPingGraph/actions/workflows/server-tests.yml)
+# uCPingGraph [![Server Tests](https://github.com/pyprism/uCPingGraph/actions/workflows/server-tests.yml/badge.svg)](https://github.com/pyprism/uCPingGraph/actions/workflows/server-tests.yml) [![codecov](https://codecov.io/gh/pyprism/uCPingGraph/graph/badge.svg?token=4PWDHUP8X0)](https://codecov.io/gh/pyprism/uCPingGraph)
 
 uCPingGraph tracks network quality from microcontrollers and visualizes it in a web dashboard.
 
