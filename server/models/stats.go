@@ -153,6 +153,6 @@ func (s *Stat) Cleanup() error {
 	}
 
 	xDaysAgo := time.Now().AddDate(0, 0, -days)
-	result := DB.Where("created_at <= ?", xDaysAgo).Delete(&Stat{})
+	result := DB.Unscoped().Where("created_at <= ?", xDaysAgo).Delete(&Stat{})
 	return result.Error
 }
