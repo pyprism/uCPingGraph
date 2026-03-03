@@ -15,15 +15,15 @@ import (
 )
 
 func NewRouter() *gin.Engine {
+	if os.Getenv("DEBUG") != "True" {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	router := gin.New()
 	router.Static("/static", "./static")
 	router.LoadHTMLGlob("templates/*.html")
 
 	zapLogger := logger.Get()
-
-	if os.Getenv("DEBUG") != "True" {
-		gin.SetMode(gin.ReleaseMode)
-	}
 
 	router.Use(ginzap.Ginzap(zapLogger, time.RFC3339, true))
 	router.Use(ginzap.RecoveryWithZap(zapLogger, true))
