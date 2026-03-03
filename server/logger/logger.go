@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -14,7 +15,10 @@ import (
 	"gopkg.in/lumberjack.v2"
 )
 
-var L *zap.Logger
+var (
+	L  *zap.Logger
+	mu sync.Mutex
+)
 
 // Init initialises the global zap logger.
 // It writes JSON to a rotated file in logsDir and human-readable output to
@@ -68,11 +72,15 @@ func Init() {
 	consoleCore := zapcore.NewCore(consoleEncoder, zapcore.AddSync(os.Stdout), zapcore.DebugLevel)
 
 	// Tee both cores together.
-	L = zap.New(
+	newLogger := zap.New(
 		zapcore.NewTee(fileCore, consoleCore),
 		zap.AddCaller(),
 		zap.AddStacktrace(zapcore.ErrorLevel),
 	)
+
+	mu.Lock()
+	L = newLogger
+	mu.Unlock()
 
 	// --- Sentry (optional) ---
 	dsn := utils.GetEnv("SENTRY_DSN", "")
@@ -103,6 +111,8 @@ func Shutdown() {
 // Get returns the global logger, initialising with a no-op logger if Init was
 // not called (e.g. during tests).
 func Get() *zap.Logger {
+	mu.Lock()
+	defer mu.Unlock()
 	if L == nil {
 		L = zap.NewNop()
 	}
