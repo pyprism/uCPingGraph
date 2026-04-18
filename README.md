@@ -2,11 +2,6 @@
 
 uCPingGraph tracks network quality from microcontrollers and visualizes it in a web dashboard.
 
-## Project Layout
-
-- `client/esp`: PlatformIO firmware for both ESP8266 and ESP32 (using WiFiManager)
-- `server`: Go backend, SQLite storage, API, and dashboard
-
 ## Features
 
 - ESP8266 and ESP32 support from one firmware codebase
