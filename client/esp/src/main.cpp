@@ -24,6 +24,18 @@ const uint8_t kResetButtonPin = 14; // D5 on ESP8266, GPIO14 on ESP32
 const uint8_t kBootButtonPin = 0;   // BOOT button on many ESP32/ESP8266 boards
 const unsigned long kResetHoldMs = 5000;
 
+#if defined(LED_BUILTIN)
+const uint8_t kStatusLedPin = LED_BUILTIN;
+#else
+const uint8_t kStatusLedPin = 2;
+#endif
+
+#if defined(ESP8266)
+const bool kStatusLedActiveLow = true;
+#else
+const bool kStatusLedActiveLow = false;
+#endif
+
 struct DeviceConfig {
   String serverBaseURL = "";
   String deviceToken = "";
@@ -48,6 +60,23 @@ struct ProbeResult {
   float averageLatencyMs = 0.0f;
 };
 
+void setStatusLed(bool on) {
+  if (kStatusLedActiveLow) {
+    digitalWrite(kStatusLedPin, on ? LOW : HIGH);
+  } else {
+    digitalWrite(kStatusLedPin, on ? HIGH : LOW);
+  }
+}
+
+void beginStatusLed() {
+  pinMode(kStatusLedPin, OUTPUT);
+  setStatusLed(false);
+}
+
+void updateStatusLedFromProbe(const ProbeResult &probe) {
+  setStatusLed(probe.receivedPackets == 0);
+}
+
 String buildStatsURL() {
   String base = gConfig.serverBaseURL;
   base.trim();
@@ -66,7 +95,7 @@ bool resolveTarget(IPAddress &targetIP) {
 
 ProbeResult runProbe(const IPAddress &targetIP) {
   ProbeResult result;
-  result.sentPackets = gConfig.probeCount;
+  result.sentPackets = gConfig.probeCount > 0 ? gConfig.probeCount : 1;
 
   float latencySum = 0.0f;
   for (uint8_t i = 0; i < result.sentPackets; i++) {
@@ -90,6 +119,10 @@ ProbeResult runProbe(const IPAddress &targetIP) {
 
 bool postStats(const ProbeResult &probe) {
   const String url = buildStatsURL();
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    Serial.println("Server URL must start with http:// or https://");
+    return false;
+  }
 
   JsonDocument payload;
   payload["latency_ms"] = probe.averageLatencyMs;
@@ -103,35 +136,43 @@ bool postStats(const ProbeResult &probe) {
   String body;
   serializeJson(payload, body);
 
+  WiFiClient plainClient;
 #if defined(ESP8266)
-  BearSSL::WiFiClientSecure client;
-  client.setInsecure();
+  BearSSL::WiFiClientSecure secureClient;
 #else
-  WiFiClientSecure client;
-  client.setInsecure();
+  WiFiClientSecure secureClient;
 #endif
+  secureClient.setInsecure();
 
-  HTTPClient https;
-  if (!https.begin(client, url)) {
-    Serial.println("HTTPS begin failed");
+  HTTPClient http;
+  bool started = false;
+  if (url.startsWith("https://")) {
+    started = http.begin(secureClient, url);
+  } else {
+    started = http.begin(plainClient, url);
+  }
+
+  if (!started) {
+    Serial.println("HTTP begin failed");
     return false;
   }
 
-  https.addHeader("Content-Type", "application/json");
-  https.addHeader("Accept", "application/json");
-  https.addHeader("Authorization", gConfig.deviceToken);
+  http.setTimeout(8000);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Accept", "application/json");
+  http.addHeader("Authorization", gConfig.deviceToken);
 
-  const int statusCode = https.POST(body);
+  const int statusCode = http.POST(body);
   const bool ok = statusCode >= 200 && statusCode < 300;
 
   if (!ok) {
     Serial.printf("POST failed. Status=%d, body=%s\n", statusCode,
-                  https.getString().c_str());
+                  http.getString().c_str());
   } else {
     Serial.printf("POST ok. Status=%d\n", statusCode);
   }
 
-  https.end();
+  http.end();
   return ok;
 }
 
@@ -377,6 +418,7 @@ void setup() {
   delay(100);
   pinMode(kResetButtonPin, INPUT_PULLUP);
   pinMode(kBootButtonPin, INPUT_PULLUP);
+  beginStatusLed();
 
   Serial.println();
   Serial.println("uCPingGraph client booting...");
@@ -404,6 +446,7 @@ void loop() {
 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("WiFi disconnected, reconnecting...");
+    setStatusLed(true);
     connectWiFi();
     return;
   }
@@ -411,10 +454,12 @@ void loop() {
   IPAddress targetIP;
   if (!resolveTarget(targetIP)) {
     Serial.println("Unable to resolve ping target");
+    setStatusLed(true);
     return;
   }
 
   const ProbeResult probe = runProbe(targetIP);
+  updateStatusLedFromProbe(probe);
   Serial.printf("Probe target=%s sent=%d received=%d loss=%.2f latency=%.2fms\n",
                 gConfig.pingTarget.c_str(), probe.sentPackets,
                 probe.receivedPackets,
