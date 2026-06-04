@@ -12,7 +12,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/manifoldco/promptui v0.9.0
 	github.com/spf13/cobra v1.10.2
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	gopkg.in/lumberjack.v2 v2.0.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
