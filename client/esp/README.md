@@ -48,11 +48,11 @@ Behavior:
   - delete saved `/ucpinggraph.json`
   - reboot into fresh setup state
 
-## Build
+## Build & Upload
 
 ```bash
-platformio run -e nodemcuv2
-platformio run -e esp32dev
+platformio run -e nodemcuv2 -t upload  # for ESP8266 NodeMCU
+platformio run -e esp32dev -t upload
 ```
 
 ## Payload Sent to Server
