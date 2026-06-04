@@ -95,6 +95,21 @@ func TestSaveStatsRejectsInvalidTelemetry(t *testing.T) {
 	}
 }
 
+func TestSaveStatsRejectsNegativeLatency(t *testing.T) {
+	setupTestDB(t)
+	token := seedDevice(t)
+
+	err := SaveStats(token, IngestTelemetry{
+		LatencyMs:         -1,
+		SentPackets:       1,
+		ReceivedPackets:   1,
+		PacketLossPercent: 0,
+	})
+	if err != ErrInvalidTelemetry {
+		t.Fatalf("expected ErrInvalidTelemetry, got %v", err)
+	}
+}
+
 func TestSaveStatsRejectsUnknownToken(t *testing.T) {
 	setupTestDB(t)
 	seedDevice(t)
