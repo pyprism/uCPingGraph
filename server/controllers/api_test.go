@@ -10,8 +10,11 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pyprism/uCPingGraph/logger"
 	"github.com/pyprism/uCPingGraph/models"
 	"github.com/pyprism/uCPingGraph/service"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -88,6 +91,46 @@ func TestPostStatsCreatesRecord(t *testing.T) {
 	}
 }
 
+func TestPostStatsLogsESPReportedLatency(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token := setupControllerTestDB(t)
+	core, logs := observer.New(zap.InfoLevel)
+	logger.L = zap.New(core)
+	t.Cleanup(func() {
+		logger.L = zap.NewNop()
+	})
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	body := `{"latency_ms":22.4,"sent_packets":5,"received_packets":4,"packet_loss_percent":20,"target":"1.1.1.1","platform":"esp8266","rssi":-70}`
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	if logs.Len() != 1 {
+		t.Fatalf("expected 1 log entry, got %d", logs.Len())
+	}
+	entry := logs.All()[0]
+	if entry.Message != "esp telemetry received" {
+		t.Fatalf("unexpected log message %q", entry.Message)
+	}
+	context := entry.ContextMap()
+	if context["esp_ping_latency_ms"] != 22.4 {
+		t.Fatalf("expected esp_ping_latency_ms=22.4, got %#v", context["esp_ping_latency_ms"])
+	}
+	if context["packet_loss_percent"] != 20.0 {
+		t.Fatalf("expected packet_loss_percent=20, got %#v", context["packet_loss_percent"])
+	}
+}
+
 func TestPostStatsInvalidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	token := setupControllerTestDB(t)
@@ -124,6 +167,26 @@ func TestPostStatsNegativeLatency(t *testing.T) {
 	router.ServeHTTP(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for negative latency, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestPostStatsMissingLatency(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token := setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	body := `{"sent_packets":1,"received_packets":0,"packet_loss_percent":100}`
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for missing latency, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 

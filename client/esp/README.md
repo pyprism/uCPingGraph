@@ -21,7 +21,23 @@ Portal fields:
 - Probe Count
 - Send Interval (ms)
 
+Server URL must include the scheme, for example `http://example.com` or
+`https://example.com`.
+
 Values are persisted in LittleFS at `/ucpinggraph.json`.
+
+## Status LED
+
+The firmware uses the board's built-in LED when available.
+
+- ESP8266 NodeMCU: `LED_BUILTIN` / GPIO2 / D4, active-low
+- ESP32 dev board: `LED_BUILTIN` when defined, otherwise GPIO2, active-high
+
+Behavior:
+
+- LED on: WiFi is disconnected, the ping target cannot resolve, or the latest
+  probe received zero replies
+- LED off: the latest probe received at least one ping reply
 
 ## Runtime Factory Reset Button
 

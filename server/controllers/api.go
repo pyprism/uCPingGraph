@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/pyprism/uCPingGraph/logger"
 	"github.com/pyprism/uCPingGraph/models"
 	"github.com/pyprism/uCPingGraph/service"
+	"go.uber.org/zap"
 )
 
 type APIController struct{}
@@ -42,6 +44,9 @@ func (n *APIController) PostStats(c *gin.Context) {
 		latency = *req.LatencyMs
 	} else if req.LatencyLegacy != nil {
 		latency = *req.LatencyLegacy
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "latency_ms is required"})
+		return
 	}
 	if latency < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "latency must not be negative"})
@@ -92,6 +97,16 @@ func (n *APIController) PostStats(c *gin.Context) {
 		}
 		return
 	}
+
+	logger.Get().Info("esp telemetry received",
+		zap.Float64("esp_ping_latency_ms", latency),
+		zap.Int("sent_packets", sentPackets),
+		zap.Int("received_packets", receivedPackets),
+		zap.Float64("packet_loss_percent", packetLoss),
+		zap.String("target", strings.TrimSpace(req.Target)),
+		zap.String("platform", strings.TrimSpace(req.Platform)),
+		zap.Int("rssi", req.RSSI),
+	)
 
 	c.JSON(http.StatusCreated, gin.H{"status": "ok"})
 }

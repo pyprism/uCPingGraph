@@ -29,7 +29,8 @@ func SaveStats(token string, telemetry IngestTelemetry) error {
 		return ErrInvalidToken
 	}
 
-	if telemetry.SentPackets <= 0 ||
+	if telemetry.LatencyMs < 0 ||
+		telemetry.SentPackets <= 0 ||
 		telemetry.ReceivedPackets < 0 ||
 		telemetry.ReceivedPackets > telemetry.SentPackets ||
 		telemetry.PacketLossPercent < 0 ||

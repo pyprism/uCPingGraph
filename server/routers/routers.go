@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pyprism/uCPingGraph/controllers"
 	"github.com/pyprism/uCPingGraph/logger"
+	"go.uber.org/zap"
 )
 
 func NewRouter() *gin.Engine {
@@ -25,7 +26,7 @@ func NewRouter() *gin.Engine {
 
 	zapLogger := logger.Get()
 
-	router.Use(ginzap.Ginzap(zapLogger, time.RFC3339, true))
+	router.Use(requestLogger(zapLogger))
 	router.Use(ginzap.RecoveryWithZap(zapLogger, true))
 	router.Use(sentrygin.New(sentrygin.Options{Repanic: true}))
 
@@ -52,4 +53,35 @@ func NewRouter() *gin.Engine {
 	}
 
 	return router
+}
+
+func requestLogger(zapLogger *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		path := c.Request.URL.Path
+		query := c.Request.URL.RawQuery
+
+		c.Next()
+
+		end := time.Now().UTC()
+		fields := []zap.Field{
+			zap.Int("status", c.Writer.Status()),
+			zap.String("method", c.Request.Method),
+			zap.String("path", path),
+			zap.String("query", query),
+			zap.String("ip", c.ClientIP()),
+			zap.String("user-agent", c.Request.UserAgent()),
+			zap.Float64("request_latency_seconds", end.Sub(start).Seconds()),
+			zap.String("time", end.Format(time.RFC3339)),
+		}
+
+		if len(c.Errors) > 0 {
+			for _, err := range c.Errors.Errors() {
+				zapLogger.Error(err, fields...)
+			}
+			return
+		}
+
+		zapLogger.Info(path, fields...)
+	}
 }
