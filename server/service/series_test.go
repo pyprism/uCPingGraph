@@ -60,8 +60,8 @@ func TestGetSeriesReturnsData(t *testing.T) {
 	if resp.Summary.Samples != 1 {
 		t.Fatalf("expected 1 sample, got %d", resp.Summary.Samples)
 	}
-	if resp.Series.LatencySeries[0] != 25.0 {
-		t.Fatalf("expected latency 25.0, got %f", resp.Series.LatencySeries[0])
+	if resp.Series.LatencySeries[0] == nil || *resp.Series.LatencySeries[0] != 25.0 {
+		t.Fatalf("expected latency 25.0, got %v", resp.Series.LatencySeries[0])
 	}
 }
 

@@ -128,6 +128,23 @@ func TestGetAllNetworkNilDB(t *testing.T) {
 	}
 }
 
+func TestNetworkNilDB(t *testing.T) {
+	SetDB(nil)
+	n := Network{}
+
+	if _, err := n.CreateNetwork("x"); err == nil {
+		t.Fatal("expected error when DB is nil")
+	}
+
+	if _, err := n.GetNetworkIdByName("x"); err == nil {
+		t.Fatal("expected error when DB is nil")
+	}
+
+	if _, err := n.GetAllNetworkName(); err == nil {
+		t.Fatal("expected error when DB is nil")
+	}
+}
+
 // --------------- Device tests ---------------
 
 func TestCreateDevice(t *testing.T) {

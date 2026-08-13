@@ -252,6 +252,27 @@ func TestPostStatsBackwardCompatZeroPackets(t *testing.T) {
 	}
 }
 
+func TestPostStatsPacketLossWithoutCounters(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token := setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	// packet_loss_percent supplied but sent/received counters absent.
+	body := `{"latency_ms":12,"packet_loss_percent":0}`
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestNetworks(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	setupControllerTestDB(t)
@@ -300,6 +321,104 @@ func TestDevicesByNetwork(t *testing.T) {
 	}
 	if len(resp["items"]) != 1 || resp["items"][0] != "esp32-main" {
 		t.Fatalf("expected [esp32-main], got %v", resp["items"])
+	}
+}
+
+func TestPostStatsFullLossWithoutCountersRecordsZeroReceived(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token := setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	// packet_loss_percent=100 with no counters must not be recorded as a
+	// fabricated 1 sent/1 received (which would look like 100% availability
+	// and a real latency reading downstream).
+	body := `{"latency_ms":0,"packet_loss_percent":100}`
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var stat models.Stat
+	if err := models.DB.Last(&stat).Error; err != nil {
+		t.Fatalf("read stored stat: %v", err)
+	}
+	if stat.SentPackets != 1 || stat.ReceivedPackets != 0 {
+		t.Fatalf("expected sent=1 received=0 for reported full loss, got sent=%d received=%d",
+			stat.SentPackets, stat.ReceivedPackets)
+	}
+}
+
+func TestNetworksDBError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	sqlDB, err := models.DB.DB()
+	if err != nil {
+		t.Fatalf("get sql.DB: %v", err)
+	}
+	sqlDB.Close()
+
+	api := new(APIController)
+	router := gin.New()
+	router.GET("/api/networks", api.Networks)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/networks", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 on DB error, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestDevicesByNetworkDBError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	sqlDB, err := models.DB.DB()
+	if err != nil {
+		t.Fatalf("get sql.DB: %v", err)
+	}
+	sqlDB.Close()
+
+	api := new(APIController)
+	router := gin.New()
+	router.GET("/api/networks/:network/devices", api.DevicesByNetwork)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/networks/home/devices", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 on DB error, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSeriesDBError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	sqlDB, err := models.DB.DB()
+	if err != nil {
+		t.Fatalf("get sql.DB: %v", err)
+	}
+	sqlDB.Close()
+
+	api := new(APIController)
+	router := gin.New()
+	router.GET("/api/series", api.Series)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/series?network=home&device=esp32-main&minutes=60", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 on DB error, got %d body=%s", rec.Code, rec.Body.String())
 	}
 }
 

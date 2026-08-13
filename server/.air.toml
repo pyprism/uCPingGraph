@@ -1,9 +1,10 @@
 root = "."
-testdata_dir = "/tmp/testdata"
-tmp_dir = "/tmp"
+testdata_dir = "testdata"
+tmp_dir = "tmp"
 
 [build]
-  bin = "/app/main server"
+  bin = "/app/main"
+  args_bin = ["server"]
   cmd = "go build -o /app/main ."
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]

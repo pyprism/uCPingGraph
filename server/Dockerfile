@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY . /app
 
-RUN go install github.com/cosmtrek/air@latest
+RUN go install github.com/air-verse/air@latest
 
 ENV TZ=Asia/Dhaka
 

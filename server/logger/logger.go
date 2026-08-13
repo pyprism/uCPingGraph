@@ -12,7 +12,7 @@ import (
 	"github.com/pyprism/uCPingGraph/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/lumberjack.v2"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (

@@ -11,6 +11,7 @@ import (
 	"github.com/pyprism/uCPingGraph/models"
 	"github.com/pyprism/uCPingGraph/service"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type APIController struct{}
@@ -61,11 +62,17 @@ func (n *APIController) PostStats(c *gin.Context) {
 		packetLoss = *req.PacketLossPercent
 	}
 
-	// Backward compatibility for old clients that only send latency.
-	if sentPackets == 0 && receivedPackets == 0 && req.PacketLossPercent == nil {
+	// Default counters for legacy/minimal payloads that omit them, whether or
+	// not packet_loss_percent was supplied. Honor an explicit 100% loss as
+	// zero received packets so availability and latency-validity downstream
+	// (models.GetStats) stay consistent with what the client reported,
+	// instead of contradicting a reported outage with a fabricated 1/1.
+	if sentPackets == 0 && receivedPackets == 0 {
 		sentPackets = 1
 		receivedPackets = 1
-		packetLoss = 0
+		if req.PacketLossPercent != nil && *req.PacketLossPercent >= 100 {
+			receivedPackets = 0
+		}
 	}
 
 	// Only calculate loss from counters when the client did not provide an
@@ -129,7 +136,11 @@ func (n *APIController) DevicesByNetwork(c *gin.Context) {
 
 	networkID, err := networkModel.GetNetworkIdByName(networkName)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "network not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "network not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch network"})
 		return
 	}
 
@@ -165,7 +176,11 @@ func (n *APIController) Series(c *gin.Context) {
 
 	data, err := service.GetSeries(network, device, minutes)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "metric series not found"})
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "metric series not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch metric series"})
 		return
 	}
 

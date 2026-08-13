@@ -1,5 +1,14 @@
 # uCPingGraph Server
 
+## Security model
+
+The read APIs (`/api/networks`, `/api/networks/:network/devices`, `/api/series`)
+and the dashboard are unauthenticated, and CORS allows all origins
+(`cors.Default()`). This is intentional for **LAN-only deployments**: any
+device on the network can read topology and telemetry. If you expose this
+server beyond a trusted LAN, put it behind your own auth and a real CORS
+origin allowlist first — do not expose it directly to the internet as-is.
+
 ## Run
 
 ```bash
