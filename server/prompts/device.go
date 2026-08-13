@@ -1,7 +1,6 @@
 package prompts
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,75 +10,39 @@ import (
 	"github.com/pyprism/uCPingGraph/models"
 )
 
-type DevicePromptContent struct {
-	ErrorMsg string
-	Label    string
-}
-
-func devicePromptInputSelect(content DevicePromptContent) string {
+func devicePromptInputSelect(content commonPromptContent) string {
 	networkModel := models.Network{}
 	networks, err := networkModel.GetAllNetworkName()
 	if err != nil {
 		log.Println(err.Error())
-
-	}
-	index := -1
-	var result string
-
-	for index < 0 {
-		prompt := promptui.SelectWithAdd{
-			Label: content.Label,
-			Items: networks,
-		}
-
-		index, result, err = prompt.Run()
-
-		if index == -1 {
-			networks = append(networks, result)
-		}
 	}
 
-	if err != nil {
-		fmt.Printf("Prompt failed %v\n", err)
-		os.Exit(1)
-	}
-	return result
-}
-
-func devicePromptInput(dp DevicePromptContent) string {
-	validate := func(input string) error {
-		if len(input) <= 0 {
-			return errors.New(dp.ErrorMsg)
-		}
-		return nil
+	prompt := promptui.SelectWithAdd{
+		Label: content.Label,
+		Items: networks,
 	}
 
-	templates := &promptui.PromptTemplates{
-		Prompt:  "{{ . }} ",
-		Valid:   "{{ . | green }} ",
-		Invalid: "{{ . | red }} ",
-		Success: "{{ . | bold }} ",
-	}
-
-	prompt := promptui.Prompt{
-		Label:     dp.Label,
-		Templates: templates,
-		Validate:  validate,
-	}
-
-	result, err := prompt.Run()
+	index, result, err := prompt.Run()
 	if err != nil {
 		fmt.Printf("Prompt failed %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Input: %s\n", result)
+	if index == -1 {
+		// The user typed a name that wasn't in the list; create the network
+		// now so a later lookup by name succeeds.
+		newNetwork := models.Network{}
+		if _, err := newNetwork.CreateNetwork(result); err != nil {
+			fmt.Printf("Failed to create network %q: %v\n", result, err)
+			os.Exit(1)
+		}
+	}
 
 	return result
 }
 
 func AddNewDevice() {
-	networkListPrompt := DevicePromptContent{
+	networkListPrompt := commonPromptContent{
 		Label:    "Select network",
 		ErrorMsg: "Please select network from the list",
 	}
@@ -92,12 +55,12 @@ func AddNewDevice() {
 		return
 	}
 
-	deviceNamePrompt := DevicePromptContent{
+	deviceNamePrompt := commonPromptContent{
 		Label:    "Device name",
 		ErrorMsg: "Device name cannot be empty and must be unique in the network",
 	}
 
-	deviceName := devicePromptInput(deviceNamePrompt)
+	deviceName := commonPromptInput(deviceNamePrompt)
 	device := models.Device{}
 
 	// Check if the device name is unique in the network

@@ -4,7 +4,10 @@ import "testing"
 
 func TestGenTokenLength(t *testing.T) {
 	for _, size := range []int{1, 8, 16, 32, 64} {
-		tok := GenToken(size)
+		tok, err := GenToken(size)
+		if err != nil {
+			t.Fatalf("GenToken(%d) returned error: %v", size, err)
+		}
 		if len(tok) != size {
 			t.Fatalf("GenToken(%d) returned length %d", size, len(tok))
 		}
@@ -14,7 +17,10 @@ func TestGenTokenLength(t *testing.T) {
 func TestGenTokenUniqueness(t *testing.T) {
 	seen := make(map[string]bool)
 	for i := 0; i < 100; i++ {
-		tok := GenToken(32)
+		tok, err := GenToken(32)
+		if err != nil {
+			t.Fatalf("GenToken returned error: %v", err)
+		}
 		if seen[tok] {
 			t.Fatalf("duplicate token generated: %s", tok)
 		}
@@ -29,7 +35,10 @@ func TestGenTokenCharset(t *testing.T) {
 		charSet[charset[i]] = true
 	}
 
-	tok := GenToken(256)
+	tok, err := GenToken(256)
+	if err != nil {
+		t.Fatalf("GenToken returned error: %v", err)
+	}
 	for i := 0; i < len(tok); i++ {
 		if !charSet[tok[i]] {
 			t.Fatalf("GenToken produced invalid character: %c", tok[i])

@@ -106,12 +106,12 @@ func TestGetStatsReturnsMetrics(t *testing.T) {
 	if len(resp.Series.PacketLossSeries) != 3 {
 		t.Fatalf("expected 3 loss points, got %d", len(resp.Series.PacketLossSeries))
 	}
-	if resp.Summary.Availability != 100 {
-		t.Fatalf("expected 100%% availability, got %.2f", resp.Summary.Availability)
+	if resp.Summary.Availability == nil || *resp.Summary.Availability != 100 {
+		t.Fatalf("expected 100%% availability, got %v", resp.Summary.Availability)
 	}
 	// Average latency = (10+11+12)/3 = 11
-	if resp.Summary.AverageLatencyMs != 11 {
-		t.Fatalf("expected average latency 11, got %.2f", resp.Summary.AverageLatencyMs)
+	if resp.Summary.AverageLatencyMs == nil || *resp.Summary.AverageLatencyMs != 11 {
+		t.Fatalf("expected average latency 11, got %v", resp.Summary.AverageLatencyMs)
 	}
 }
 
@@ -140,6 +140,15 @@ func TestGetStatsEmptyResult(t *testing.T) {
 	}
 	if resp.Summary.Samples != 0 {
 		t.Fatalf("expected 0 samples, got %d", resp.Summary.Samples)
+	}
+	if resp.Summary.AverageLatencyMs != nil {
+		t.Fatalf("expected nil average latency for empty result, got %v", *resp.Summary.AverageLatencyMs)
+	}
+	if resp.Summary.Availability != nil {
+		t.Fatalf("expected nil availability for empty result, got %v", *resp.Summary.Availability)
+	}
+	if resp.Summary.LastUpdatedRFC3339 != "" {
+		t.Fatalf("expected empty last_updated for empty result, got %q", resp.Summary.LastUpdatedRFC3339)
 	}
 }
 
@@ -210,12 +219,83 @@ func TestCleanupInvalidDays(t *testing.T) {
 	}
 }
 
+func TestCleanupRejectsNonPositiveDays(t *testing.T) {
+	for _, days := range []string{"0", "-1"} {
+		t.Run(days, func(t *testing.T) {
+			db := statsTestDB(t)
+			nid, did := seedStatsDevice(t)
+			db.Create(&Stat{NetworkID: nid, DeviceID: did, SentPackets: 1, ReceivedPackets: 1})
+
+			t.Setenv("CLEANUP_DAYS", days)
+
+			s := Stat{}
+			if err := s.Cleanup(); err == nil {
+				t.Fatalf("expected error for CLEANUP_DAYS=%s", days)
+			}
+
+			var count int64
+			db.Model(&Stat{}).Count(&count)
+			if count != 1 {
+				t.Fatalf("expected no rows deleted for CLEANUP_DAYS=%s, got count=%d", days, count)
+			}
+		})
+	}
+}
+
 func TestCleanupNilDB(t *testing.T) {
 	SetDB(nil)
 	s := Stat{}
 	err := s.Cleanup()
 	if err == nil {
 		t.Fatal("expected error when DB is nil")
+	}
+}
+
+func TestGetStatsExcludesTotalLossFromLatencyAverage(t *testing.T) {
+	statsTestDB(t)
+	nid, did := seedStatsDevice(t)
+
+	s := Stat{}
+	// A healthy sample.
+	s.CreateStat(int(nid), int(did), TelemetryRecord{
+		LatencyMs:       20,
+		SentPackets:     5,
+		ReceivedPackets: 5,
+		Target:          "1.1.1.1",
+		Platform:        "esp32",
+	})
+	// A total-loss probe: some firmware reports latency_ms=0 here.
+	s2 := Stat{}
+	s2.CreateStat(int(nid), int(did), TelemetryRecord{
+		LatencyMs:         0,
+		SentPackets:       5,
+		ReceivedPackets:   0,
+		PacketLossPercent: 100,
+		Target:            "1.1.1.1",
+		Platform:          "esp32",
+	})
+
+	stat := Stat{}
+	resp, err := stat.GetStats(nid, did, 60)
+	if err != nil {
+		t.Fatalf("GetStats: %v", err)
+	}
+	if resp.Summary.Samples != 2 {
+		t.Fatalf("expected 2 samples, got %d", resp.Summary.Samples)
+	}
+	// Average latency must only count the sample with a real reading.
+	if resp.Summary.AverageLatencyMs == nil || *resp.Summary.AverageLatencyMs != 20 {
+		t.Fatalf("expected average latency 20, got %v", resp.Summary.AverageLatencyMs)
+	}
+	// The latest sample was a total outage, so latest latency is unknown.
+	if resp.Summary.LatestLatencyMs != nil {
+		t.Fatalf("expected nil latest latency after total loss, got %v", *resp.Summary.LatestLatencyMs)
+	}
+	if len(resp.Series.LatencySeries) != 2 {
+		t.Fatalf("expected 2 latency points, got %d", len(resp.Series.LatencySeries))
+	}
+	if resp.Series.LatencySeries[1] != nil {
+		t.Fatalf("expected nil latency point for total-loss sample, got %v", *resp.Series.LatencySeries[1])
 	}
 }
 
@@ -240,7 +320,7 @@ func TestGetStatsAvailabilityCalculation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetStats: %v", err)
 	}
-	if resp.Summary.Availability != 50 {
-		t.Fatalf("expected 50%% availability, got %.2f", resp.Summary.Availability)
+	if resp.Summary.Availability == nil || *resp.Summary.Availability != 50 {
+		t.Fatalf("expected 50%% availability, got %v", resp.Summary.Availability)
 	}
 }

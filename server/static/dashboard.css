@@ -1,13 +1,54 @@
+@font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("/static/fonts/space-grotesk-400.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("/static/fonts/space-grotesk-500.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("/static/fonts/space-grotesk-700.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("/static/fonts/ibm-plex-mono-400.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "IBM Plex Mono";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("/static/fonts/ibm-plex-mono-500.woff2") format("woff2");
+}
+
+/* Solarized dark: https://ethanschoonover.com/solarized/ */
 :root {
-    --bg-0: #091824;
-    --bg-1: #123247;
-    --panel: rgba(9, 20, 35, 0.78);
-    --border: rgba(153, 216, 247, 0.22);
-    --text-main: #eff9ff;
-    --text-muted: #a3cad8;
-    --accent: #45f0c2;
-    --accent-warm: #ffd166;
-    --danger: #f95d6a;
+    --bg-0: #002b36;
+    --bg-1: #073642;
+    --panel: rgba(7, 54, 66, 0.82);
+    --border: rgba(131, 148, 150, 0.28);
+    --text-main: #93a1a1;
+    --text-muted: #657b83;
+    --accent: #2aa198;
+    --accent-warm: #b58900;
+    --danger: #dc322f;
 }
 
 * {
@@ -19,16 +60,16 @@ body {
     min-height: 100vh;
     font-family: "Space Grotesk", sans-serif;
     color: var(--text-main);
-    background: radial-gradient(circle at 12% 15%, #295977 0%, transparent 45%),
-    radial-gradient(circle at 92% 8%, #1d6a67 0%, transparent 45%),
+    background: radial-gradient(circle at 12% 15%, #0a4a5c 0%, transparent 45%),
+    radial-gradient(circle at 92% 8%, #084552 0%, transparent 45%),
     linear-gradient(140deg, var(--bg-0), var(--bg-1));
 }
 
 .bg-grid {
     position: fixed;
     inset: 0;
-    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-image: linear-gradient(rgba(147, 161, 161, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 161, 161, 0.05) 1px, transparent 1px);
     background-size: 28px 28px;
     pointer-events: none;
 }
@@ -71,7 +112,7 @@ body {
 .status-pill {
     margin-top: 8px;
     border: 1px solid var(--border);
-    background: rgba(12, 43, 59, 0.65);
+    background: rgba(7, 54, 66, 0.7);
     border-radius: 999px;
     padding: 8px 14px;
     color: var(--text-muted);
@@ -84,7 +125,7 @@ body {
     border: 1px solid var(--border);
     background: var(--panel);
     backdrop-filter: blur(10px);
-    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
 }
 
 .controls {
@@ -107,9 +148,9 @@ body {
 
 select, input[type="range"], button {
     width: 100%;
-    border: 1px solid rgba(146, 223, 241, 0.33);
+    border: 1px solid rgba(131, 148, 150, 0.35);
     border-radius: 12px;
-    background: rgba(16, 41, 60, 0.9);
+    background: rgba(0, 43, 54, 0.9);
     color: var(--text-main);
     padding: 10px;
     font-family: inherit;
@@ -117,6 +158,28 @@ select, input[type="range"], button {
 
 input[type="range"] {
     padding: 0;
+}
+
+.window-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.window-presets button {
+    width: auto;
+    flex: 1 1 auto;
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: rgba(0, 43, 54, 0.9);
+    color: var(--text-muted);
+}
+
+.window-presets button.active {
+    background: linear-gradient(120deg, var(--accent), #268bd2);
+    color: var(--bg-0);
 }
 
 #minutes-label {
@@ -172,11 +235,12 @@ button {
     width: auto;
     cursor: pointer;
     font-weight: 600;
-    background: linear-gradient(120deg, #0a7b77, #0f6dc2);
+    background: linear-gradient(120deg, var(--accent), #268bd2);
+    color: var(--bg-0);
 }
 
 button:hover {
-    filter: brightness(1.08);
+    filter: brightness(1.1);
 }
 
 .feedback {

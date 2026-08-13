@@ -7,9 +7,6 @@
     <link rel="icon" href="/static/favicon/favicon.ico" sizes="any">
     <link rel="apple-touch-icon" href="/static/favicon/apple-touch-icon.png">
     <link rel="manifest" href="/static/favicon/site.webmanifest">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/dashboard.css">
 </head>
 <body>
@@ -35,6 +32,13 @@
         </div>
         <div class="field range-field">
             <label for="minutes">Window</label>
+            <div class="window-presets" id="window-presets">
+                <button type="button" data-minutes="15">15m</button>
+                <button type="button" data-minutes="60" class="active">1h</button>
+                <button type="button" data-minutes="360">6h</button>
+                <button type="button" data-minutes="1440">24h</button>
+                <button type="button" data-minutes="10080">7d</button>
+            </div>
             <input type="range" id="minutes" min="1" max="10080" value="60">
             <span id="minutes-label">60 minutes</span>
         </div>

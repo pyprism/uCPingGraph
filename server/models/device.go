@@ -26,7 +26,10 @@ func (d *Device) CheckDeviceNameIsUnique(networkID int, name string) bool {
 	}
 
 	var device Device
-	result := DB.Where("network_id = ? AND name = ?", networkID, name).First(&device)
+	// Unscoped: the unique index covers soft-deleted rows too, so the
+	// uniqueness check must see them or CreateDevice can fail with a raw
+	// constraint error instead of the friendly "not unique" message.
+	result := DB.Unscoped().Where("network_id = ? AND name = ?", networkID, name).First(&device)
 	return errors.Is(result.Error, gorm.ErrRecordNotFound)
 }
 
@@ -35,7 +38,10 @@ func (d *Device) CreateDevice(networkID int, name string) (uint, string, error) 
 		return 0, "", errors.New("database is not initialized")
 	}
 
-	token := utils.GenToken(32)
+	token, err := utils.GenToken(32)
+	if err != nil {
+		return 0, "", err
+	}
 	d.NetworkID = uint(networkID)
 	d.Name = name
 	d.Token = token

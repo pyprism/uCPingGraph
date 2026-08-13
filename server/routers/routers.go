@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"net/http"
 	"os"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pyprism/uCPingGraph/controllers"
 	"github.com/pyprism/uCPingGraph/logger"
+	"github.com/pyprism/uCPingGraph/models"
 	"go.uber.org/zap"
 )
 
@@ -21,8 +23,6 @@ func NewRouter() *gin.Engine {
 	}
 
 	router := gin.New()
-	router.Static("/static", "./static")
-	router.LoadHTMLGlob("templates/*.html")
 
 	zapLogger := logger.Get()
 
@@ -35,12 +35,28 @@ func NewRouter() *gin.Engine {
 	router.Use(gzip.Gzip(gzip.BestCompression))
 	router.Use(limits.RequestSizeLimiter(32 * 1024))
 
+	router.Static("/static", "./static")
+	router.LoadHTMLGlob("templates/*.html")
+
 	api := new(controllers.APIController)
 	index := new(controllers.IndexController)
 
 	router.GET("/", index.Home)
 	router.GET("/healthz", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		if models.DB == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "database is not initialized"})
+			return
+		}
+		sqlDB, err := models.DB.DB()
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": err.Error()})
+			return
+		}
+		if err := sqlDB.PingContext(c.Request.Context()); err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
 	apiGroup := router.Group("/api")

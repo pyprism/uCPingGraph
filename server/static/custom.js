@@ -3,6 +3,7 @@ const ui = {
     device: document.getElementById("device"),
     minutes: document.getElementById("minutes"),
     minutesLabel: document.getElementById("minutes-label"),
+    windowPresets: document.getElementById("window-presets"),
     refreshButton: document.getElementById("refresh"),
     feedback: document.getElementById("feedback"),
     latestLatency: document.getElementById("latest-latency"),
@@ -12,6 +13,8 @@ const ui = {
     lastUpdated: document.getElementById("last-updated"),
     chartContainer: document.getElementById("chart"),
 };
+
+const AUTO_REFRESH_MS = 15000;
 
 const chart = echarts.init(ui.chartContainer, null, {renderer: "svg"});
 
@@ -25,6 +28,20 @@ function toFixed(value, digits = 2) {
         return "-";
     }
     return value.toFixed(digits);
+}
+
+function formatLabel(isoString) {
+    const date = new Date(isoString);
+    if (Number.isNaN(date.getTime())) {
+        return isoString;
+    }
+    return date.toLocaleString(undefined, {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+    });
 }
 
 async function fetchJSON(url) {
@@ -71,7 +88,7 @@ function renderChart(series) {
         },
         legend: {
             data: ["Latency (ms)", "Packet Loss (%)"],
-            textStyle: {color: "#eff9ff"},
+            textStyle: {color: "#93a1a1"},
         },
         grid: {
             left: 44,
@@ -81,22 +98,22 @@ function renderChart(series) {
         },
         xAxis: {
             type: "category",
-            data: series.labels || [],
-            axisLabel: {color: "#b5d4df"},
+            data: (series.labels || []).map(formatLabel),
+            axisLabel: {color: "#657b83"},
         },
         yAxis: [
             {
                 type: "value",
                 name: "Latency (ms)",
-                axisLabel: {color: "#47f0d0"},
-                splitLine: {lineStyle: {color: "rgba(255,255,255,0.08)"}},
+                axisLabel: {color: "#2aa198"},
+                splitLine: {lineStyle: {color: "rgba(131, 148, 150, 0.14)"}},
             },
             {
                 type: "value",
                 min: 0,
                 max: 100,
                 name: "Packet Loss (%)",
-                axisLabel: {color: "#ffca6f"},
+                axisLabel: {color: "#b58900"},
                 splitLine: {show: false},
             }
         ],
@@ -107,8 +124,9 @@ function renderChart(series) {
                 yAxisIndex: 0,
                 smooth: 0.28,
                 showSymbol: false,
-                lineStyle: {width: 2.5, color: "#45f0c2"},
-                areaStyle: {color: "rgba(69, 240, 194, 0.16)"},
+                connectNulls: false,
+                lineStyle: {width: 2.5, color: "#2aa198"},
+                areaStyle: {color: "rgba(42, 161, 152, 0.16)"},
                 data: series.latency_series || [],
             },
             {
@@ -117,8 +135,8 @@ function renderChart(series) {
                 yAxisIndex: 1,
                 smooth: 0.22,
                 showSymbol: false,
-                lineStyle: {width: 2.2, color: "#ffd166"},
-                areaStyle: {color: "rgba(255, 209, 102, 0.14)"},
+                lineStyle: {width: 2.2, color: "#b58900"},
+                areaStyle: {color: "rgba(181, 137, 0, 0.14)"},
                 data: series.packet_loss_series || [],
             }
         ]
@@ -163,6 +181,19 @@ function debounce(fn, wait) {
     };
 }
 
+function setActivePreset(minutes) {
+    const buttons = ui.windowPresets.querySelectorAll("button");
+    for (const button of buttons) {
+        button.classList.toggle("active", Number(button.dataset.minutes) === Number(minutes));
+    }
+}
+
+function setWindowMinutes(minutes) {
+    ui.minutes.value = minutes;
+    ui.minutesLabel.textContent = `${minutes} minute${Number(minutes) === 1 ? "" : "s"}`;
+    setActivePreset(minutes);
+}
+
 async function bootstrap() {
     try {
         await loadNetworks();
@@ -191,8 +222,8 @@ ui.device.addEventListener("change", async () => {
 });
 
 ui.minutes.addEventListener("input", () => {
-    const value = Number(ui.minutes.value);
-    ui.minutesLabel.textContent = `${value} minute${value === 1 ? "" : "s"}`;
+    setActivePreset(-1);
+    ui.minutesLabel.textContent = `${ui.minutes.value} minute${Number(ui.minutes.value) === 1 ? "" : "s"}`;
 });
 
 ui.minutes.addEventListener("change", debounce(async () => {
@@ -203,6 +234,19 @@ ui.minutes.addEventListener("change", debounce(async () => {
     }
 }, 250));
 
+ui.windowPresets.addEventListener("click", async (event) => {
+    const button = event.target.closest("button[data-minutes]");
+    if (!button) {
+        return;
+    }
+    setWindowMinutes(button.dataset.minutes);
+    try {
+        await loadSeries();
+    } catch (error) {
+        setFeedback(error.message, true);
+    }
+});
+
 ui.refreshButton.addEventListener("click", async () => {
     try {
         await loadSeries();
@@ -212,4 +256,12 @@ ui.refreshButton.addEventListener("click", async () => {
 });
 
 window.addEventListener("resize", () => chart.resize());
+
+setInterval(() => {
+    if (document.hidden) {
+        return;
+    }
+    loadSeries().catch((error) => setFeedback(error.message, true));
+}, AUTO_REFRESH_MS);
+
 bootstrap();

@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/pyprism/uCPingGraph/utils"
@@ -20,11 +23,23 @@ func GenerateDummyData() {
 	serverPort := utils.GetEnv("SERVER_PORT", "8080")
 	url := "http://127.0.0.1:" + serverPort + "/api/stats"
 
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
 	// call local API
 	for {
+		select {
+		case <-stop:
+			log.Println("stopping dummy data generator")
+			return
+		default:
+		}
+
 		latency := utils.RandomFloat()
 		sentPackets := 5
-		receivedPackets := sentPackets - utils.RandomInt()%2
+		// 0..sentPackets received, so loss ranges from none to a full outage
+		// instead of only ever 0% or 20%.
+		receivedPackets := utils.RandomInt() % (sentPackets + 1)
 		packetLoss := (float64(sentPackets-receivedPackets) / float64(sentPackets)) * 100
 
 		jsonData := map[string]interface{}{
@@ -66,7 +81,12 @@ func GenerateDummyData() {
 		if sleepSec < 1 {
 			sleepSec = 1
 		}
-		time.Sleep(time.Duration(sleepSec) * time.Second)
+		select {
+		case <-stop:
+			log.Println("stopping dummy data generator")
+			return
+		case <-time.After(time.Duration(sleepSec) * time.Second):
+		}
 	}
 
 }

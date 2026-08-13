@@ -1,6 +1,6 @@
 module github.com/pyprism/uCPingGraph
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/getsentry/sentry-go v0.47.0
@@ -13,13 +13,12 @@ require (
 	github.com/manifoldco/promptui v0.9.0
 	github.com/spf13/cobra v1.10.2
 	go.uber.org/zap v1.28.0
-	gopkg.in/lumberjack.v2 v2.0.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.2
 )
 
 require (
-	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
@@ -56,6 +55,4 @@ require (
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
