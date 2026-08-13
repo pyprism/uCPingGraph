@@ -1,0 +1,40 @@
+name: Firmware Build
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'client/**'
+      - '.github/workflows/firmware-build.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'client/**'
+      - '.github/workflows/firmware-build.yml'
+
+jobs:
+  build:
+    name: PlatformIO build (${{ matrix.env }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        env: [nodemcuv2, esp32dev]
+
+    defaults:
+      run:
+        working-directory: client/esp
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Build ${{ matrix.env }}
+        run: platformio run -e ${{ matrix.env }}
