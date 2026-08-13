@@ -324,6 +324,72 @@ func TestDevicesByNetwork(t *testing.T) {
 	}
 }
 
+func TestNetworksDBError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	sqlDB, err := models.DB.DB()
+	if err != nil {
+		t.Fatalf("get sql.DB: %v", err)
+	}
+	sqlDB.Close()
+
+	api := new(APIController)
+	router := gin.New()
+	router.GET("/api/networks", api.Networks)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/networks", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 on DB error, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestDevicesByNetworkDBError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	sqlDB, err := models.DB.DB()
+	if err != nil {
+		t.Fatalf("get sql.DB: %v", err)
+	}
+	sqlDB.Close()
+
+	api := new(APIController)
+	router := gin.New()
+	router.GET("/api/networks/:network/devices", api.DevicesByNetwork)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/networks/home/devices", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 on DB error, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSeriesDBError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupControllerTestDB(t)
+	sqlDB, err := models.DB.DB()
+	if err != nil {
+		t.Fatalf("get sql.DB: %v", err)
+	}
+	sqlDB.Close()
+
+	api := new(APIController)
+	router := gin.New()
+	router.GET("/api/series", api.Series)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/series?network=home&device=esp32-main&minutes=60", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 on DB error, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestDevicesByNetworkNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	setupControllerTestDB(t)

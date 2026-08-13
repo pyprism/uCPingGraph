@@ -299,6 +299,135 @@ func TestGetStatsExcludesTotalLossFromLatencyAverage(t *testing.T) {
 	}
 }
 
+func TestBuildSeriesUnderCapReturnsPerPointSeries(t *testing.T) {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	stats := []Stat{
+		{CreatedAt: base, LatencyMs: 10, ReceivedPackets: 5, PacketLossPercent: 0},
+		{CreatedAt: base.Add(time.Second), LatencyMs: 0, ReceivedPackets: 0, PacketLossPercent: 100},
+	}
+
+	series := buildSeries(stats)
+
+	if len(series.Labels) != 2 || len(series.LatencySeries) != 2 || len(series.PacketLossSeries) != 2 {
+		t.Fatalf("expected 2 points in every array, got labels=%d latency=%d loss=%d",
+			len(series.Labels), len(series.LatencySeries), len(series.PacketLossSeries))
+	}
+	if series.Labels[0] != base.Format(time.RFC3339) {
+		t.Fatalf("expected label %q, got %q", base.Format(time.RFC3339), series.Labels[0])
+	}
+	if series.LatencySeries[0] == nil || *series.LatencySeries[0] != 10 {
+		t.Fatalf("expected latency point 10, got %v", series.LatencySeries[0])
+	}
+	if series.LatencySeries[1] != nil {
+		t.Fatalf("expected nil latency point for total-loss sample, got %v", *series.LatencySeries[1])
+	}
+	if series.PacketLossSeries[1] != 100 {
+		t.Fatalf("expected packet loss 100, got %v", series.PacketLossSeries[1])
+	}
+}
+
+func TestBucketSeriesAveragesAndFlagsTotalLossBuckets(t *testing.T) {
+	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	mk := func(offset int, latency float64, received int, loss float64) Stat {
+		return Stat{
+			CreatedAt:         base.Add(time.Duration(offset) * time.Second),
+			LatencyMs:         latency,
+			ReceivedPackets:   received,
+			PacketLossPercent: loss,
+		}
+	}
+
+	stats := []Stat{
+		// bucket 0: all received, avg latency 20, avg loss 0
+		mk(0, 10, 5, 0),
+		mk(1, 20, 5, 0),
+		mk(2, 30, 5, 0),
+		// bucket 1: one total-loss sample excluded from the latency average
+		mk(3, 40, 5, 0),
+		mk(4, 0, 0, 100),
+		mk(5, 60, 5, 0),
+		// bucket 2: single sample, total loss -> nil latency point
+		mk(6, 0, 0, 100),
+	}
+
+	series := bucketSeries(stats, 3)
+
+	if len(series.Labels) != 3 {
+		t.Fatalf("expected 3 buckets, got %d", len(series.Labels))
+	}
+
+	if series.LatencySeries[0] == nil || *series.LatencySeries[0] != 20 {
+		t.Fatalf("expected bucket 0 avg latency 20, got %v", series.LatencySeries[0])
+	}
+	if series.LatencySeries[1] == nil || *series.LatencySeries[1] != 50 {
+		t.Fatalf("expected bucket 1 avg latency 50 (excluding total-loss sample), got %v", series.LatencySeries[1])
+	}
+	if series.LatencySeries[2] != nil {
+		t.Fatalf("expected bucket 2 (all total-loss) to be nil, got %v", *series.LatencySeries[2])
+	}
+
+	wantLoss := []float64{0, float64(100) / 3, 100}
+	for i, want := range wantLoss {
+		if series.PacketLossSeries[i] != want {
+			t.Fatalf("bucket %d: expected packet loss %.4f, got %.4f", i, want, series.PacketLossSeries[i])
+		}
+	}
+
+	// Each bucket's label is taken from its last sample.
+	wantLabels := []string{
+		base.Add(2 * time.Second).Format(time.RFC3339),
+		base.Add(5 * time.Second).Format(time.RFC3339),
+		base.Add(6 * time.Second).Format(time.RFC3339),
+	}
+	for i, want := range wantLabels {
+		if series.Labels[i] != want {
+			t.Fatalf("bucket %d: expected label %q, got %q", i, want, series.Labels[i])
+		}
+	}
+}
+
+func TestGetStatsDownsamplesLargeResultSet(t *testing.T) {
+	db := statsTestDB(t)
+	nid, did := seedStatsDevice(t)
+
+	total := maxSeriesPoints + 10
+	batch := make([]Stat, 0, total)
+	for i := 0; i < total; i++ {
+		batch = append(batch, Stat{
+			NetworkID:         nid,
+			DeviceID:          did,
+			LatencyMs:         float64(i % 50),
+			SentPackets:       5,
+			ReceivedPackets:   5,
+			PacketLossPercent: 0,
+			Target:            "1.1.1.1",
+			Platform:          "esp32",
+		})
+	}
+	if err := db.Create(&batch).Error; err != nil {
+		t.Fatalf("batch create: %v", err)
+	}
+
+	s := Stat{}
+	resp, err := s.GetStats(nid, did, 60)
+	if err != nil {
+		t.Fatalf("GetStats: %v", err)
+	}
+	if resp.Summary.Samples != total {
+		t.Fatalf("expected %d samples in summary, got %d", total, resp.Summary.Samples)
+	}
+	// The summary must still reflect every raw row even though the series
+	// gets downsampled below.
+	if len(resp.Series.Labels) > maxSeriesPoints || len(resp.Series.Labels) == total {
+		t.Fatalf("expected series downsampled to at most %d points (and fewer than %d raw rows), got %d",
+			maxSeriesPoints, total, len(resp.Series.Labels))
+	}
+	if len(resp.Series.LatencySeries) != len(resp.Series.Labels) || len(resp.Series.PacketLossSeries) != len(resp.Series.Labels) {
+		t.Fatalf("expected latency/loss series to match label count %d, got %d/%d",
+			len(resp.Series.Labels), len(resp.Series.LatencySeries), len(resp.Series.PacketLossSeries))
+	}
+}
+
 func TestGetStatsAvailabilityCalculation(t *testing.T) {
 	statsTestDB(t)
 	nid, did := seedStatsDevice(t)

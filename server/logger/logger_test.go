@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"go.uber.org/zap"
@@ -57,3 +59,42 @@ func TestCaptureErrorDoesNotPanic(t *testing.T) {
 type errForTest string
 
 func (e errForTest) Error() string { return string(e) }
+
+func TestInitCreatesLogDirAndLogger(t *testing.T) {
+	logDir := filepath.Join(t.TempDir(), "logs")
+	t.Setenv("LOG_DIR", logDir)
+	t.Setenv("SENTRY_DSN", "")
+
+	Init()
+	t.Cleanup(func() {
+		mu.Lock()
+		L = nil
+		mu.Unlock()
+	})
+
+	if _, err := os.Stat(logDir); err != nil {
+		t.Fatalf("expected log dir to be created: %v", err)
+	}
+
+	l := Get()
+	l.Info("smoke test entry")
+	_ = l.Sync()
+
+	logFile := filepath.Join(logDir, "server.log")
+	info, err := os.Stat(logFile)
+	if err != nil {
+		t.Fatalf("expected log file to exist: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Fatal("expected log file to contain data")
+	}
+}
+
+func TestShutdownDoesNotPanicWithoutInit(t *testing.T) {
+	mu.Lock()
+	L = nil
+	mu.Unlock()
+
+	// Should not panic even though Init was never called.
+	Shutdown()
+}
