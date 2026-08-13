@@ -63,10 +63,16 @@ func (n *APIController) PostStats(c *gin.Context) {
 	}
 
 	// Default counters for legacy/minimal payloads that omit them, whether or
-	// not packet_loss_percent was supplied.
+	// not packet_loss_percent was supplied. Honor an explicit 100% loss as
+	// zero received packets so availability and latency-validity downstream
+	// (models.GetStats) stay consistent with what the client reported,
+	// instead of contradicting a reported outage with a fabricated 1/1.
 	if sentPackets == 0 && receivedPackets == 0 {
 		sentPackets = 1
 		receivedPackets = 1
+		if req.PacketLossPercent != nil && *req.PacketLossPercent >= 100 {
+			receivedPackets = 0
+		}
 	}
 
 	// Only calculate loss from counters when the client did not provide an

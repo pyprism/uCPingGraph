@@ -324,6 +324,38 @@ func TestDevicesByNetwork(t *testing.T) {
 	}
 }
 
+func TestPostStatsFullLossWithoutCountersRecordsZeroReceived(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token := setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	// packet_loss_percent=100 with no counters must not be recorded as a
+	// fabricated 1 sent/1 received (which would look like 100% availability
+	// and a real latency reading downstream).
+	body := `{"latency_ms":0,"packet_loss_percent":100}`
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var stat models.Stat
+	if err := models.DB.Last(&stat).Error; err != nil {
+		t.Fatalf("read stored stat: %v", err)
+	}
+	if stat.SentPackets != 1 || stat.ReceivedPackets != 0 {
+		t.Fatalf("expected sent=1 received=0 for reported full loss, got sent=%d received=%d",
+			stat.SentPackets, stat.ReceivedPackets)
+	}
+}
+
 func TestNetworksDBError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	setupControllerTestDB(t)
