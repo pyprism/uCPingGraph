@@ -252,6 +252,27 @@ func TestPostStatsBackwardCompatZeroPackets(t *testing.T) {
 	}
 }
 
+func TestPostStatsPacketLossWithoutCounters(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	token := setupControllerTestDB(t)
+	api := new(APIController)
+
+	router := gin.New()
+	router.POST("/api/stats", api.PostStats)
+
+	// packet_loss_percent supplied but sent/received counters absent.
+	body := `{"latency_ms":12,"packet_loss_percent":0}`
+	req := httptest.NewRequest(http.MethodPost, "/api/stats", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", token)
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestNetworks(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	setupControllerTestDB(t)
