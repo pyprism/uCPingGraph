@@ -38,17 +38,19 @@
     src: url("/static/fonts/ibm-plex-mono-500.woff2") format("woff2");
 }
 
-/* Solarized dark: https://ethanschoonover.com/solarized/ */
+/* Monokai-inspired dark palette. */
 :root {
-    --bg-0: #002b36;
-    --bg-1: #073642;
-    --panel: rgba(7, 54, 66, 0.82);
-    --border: rgba(131, 148, 150, 0.28);
-    --text-main: #93a1a1;
-    --text-muted: #657b83;
-    --accent: #2aa198;
-    --accent-warm: #b58900;
-    --danger: #dc322f;
+    --bg-0: #272822;
+    --surface: #2d2a2e;
+    --card: #34352f;
+    --raised: #49483e;
+    --border: #5a584a;
+    --border-strong: #9b9685;
+    --text-main: #f8f8f2;
+    --text-muted: #9b9685;
+    --accent: #a6e22e;
+    --accent-secondary: #f92672;
+    --danger: #ff6188;
 }
 
 * {
@@ -60,16 +62,16 @@ body {
     min-height: 100vh;
     font-family: "Space Grotesk", sans-serif;
     color: var(--text-main);
-    background: radial-gradient(circle at 12% 15%, #0a4a5c 0%, transparent 45%),
-    radial-gradient(circle at 92% 8%, #084552 0%, transparent 45%),
-    linear-gradient(140deg, var(--bg-0), var(--bg-1));
+    background: radial-gradient(circle at 12% 15%, rgba(166, 226, 46, 0.07) 0%, transparent 40%),
+    radial-gradient(circle at 92% 8%, rgba(249, 38, 114, 0.08) 0%, transparent 40%),
+    var(--bg-0);
 }
 
 .bg-grid {
     position: fixed;
     inset: 0;
-    background-image: linear-gradient(rgba(147, 161, 161, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(147, 161, 161, 0.05) 1px, transparent 1px);
+    background-image: linear-gradient(rgba(248, 248, 242, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(248, 248, 242, 0.035) 1px, transparent 1px);
     background-size: 28px 28px;
     pointer-events: none;
 }
@@ -112,7 +114,7 @@ body {
 .status-pill {
     margin-top: 8px;
     border: 1px solid var(--border);
-    background: rgba(7, 54, 66, 0.7);
+    background: var(--raised);
     border-radius: 999px;
     padding: 8px 14px;
     color: var(--text-muted);
@@ -123,7 +125,7 @@ body {
 .panel {
     border-radius: 18px;
     border: 1px solid var(--border);
-    background: var(--panel);
+    background: var(--surface);
     backdrop-filter: blur(10px);
     box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
 }
@@ -148,9 +150,9 @@ body {
 
 select, input[type="range"], button {
     width: 100%;
-    border: 1px solid rgba(131, 148, 150, 0.35);
+    border: 1px solid var(--border);
     border-radius: 12px;
-    background: rgba(0, 43, 54, 0.9);
+    background: var(--card);
     color: var(--text-main);
     padding: 10px;
     font-family: inherit;
@@ -173,17 +175,18 @@ input[type="range"] {
     padding: 6px 8px;
     font-size: 0.82rem;
     font-weight: 600;
-    background: rgba(0, 43, 54, 0.9);
+    background: var(--raised);
     color: var(--text-muted);
 }
 
 .window-presets button.active {
-    background: linear-gradient(120deg, var(--accent), #268bd2);
+    background: linear-gradient(120deg, var(--accent), var(--accent-secondary));
     color: var(--bg-0);
+    border-color: var(--border-strong);
 }
 
 #minutes-label {
-    color: var(--accent-warm);
+    color: var(--accent-secondary);
     font-family: "IBM Plex Mono", monospace;
     font-size: 0.85rem;
 }
@@ -197,6 +200,7 @@ input[type="range"] {
 
 .metric-card {
     padding: 16px;
+    background: var(--card);
 }
 
 .metric-card h2 {
@@ -235,7 +239,7 @@ button {
     width: auto;
     cursor: pointer;
     font-weight: 600;
-    background: linear-gradient(120deg, var(--accent), #268bd2);
+    background: linear-gradient(120deg, var(--accent), var(--accent-secondary));
     color: var(--bg-0);
 }
 

@@ -85,10 +85,13 @@ function renderChart(series) {
         animationDuration: 500,
         tooltip: {
             trigger: "axis",
+            backgroundColor: "rgba(45, 42, 46, 0.97)",
+            borderColor: "#5a584a",
+            textStyle: {color: "#f8f8f2"},
         },
         legend: {
             data: ["Latency (ms)", "Packet Loss (%)"],
-            textStyle: {color: "#93a1a1"},
+            textStyle: {color: "#f8f8f2"},
         },
         grid: {
             left: 44,
@@ -99,22 +102,25 @@ function renderChart(series) {
         xAxis: {
             type: "category",
             data: (series.labels || []).map(formatLabel),
-            axisLabel: {color: "#657b83"},
+            axisLabel: {color: "#9b9685"},
+            axisLine: {lineStyle: {color: "#5a584a"}},
         },
         yAxis: [
             {
                 type: "value",
                 name: "Latency (ms)",
-                axisLabel: {color: "#2aa198"},
-                splitLine: {lineStyle: {color: "rgba(131, 148, 150, 0.14)"}},
+                axisLabel: {color: "#a6e22e"},
+                splitLine: {lineStyle: {color: "rgba(155, 150, 133, 0.14)"}},
+                axisLine: {lineStyle: {color: "#5a584a"}},
             },
             {
                 type: "value",
                 min: 0,
                 max: 100,
                 name: "Packet Loss (%)",
-                axisLabel: {color: "#b58900"},
+                axisLabel: {color: "#f92672"},
                 splitLine: {show: false},
+                axisLine: {lineStyle: {color: "#5a584a"}},
             }
         ],
         series: [
@@ -125,8 +131,8 @@ function renderChart(series) {
                 smooth: 0.28,
                 showSymbol: false,
                 connectNulls: false,
-                lineStyle: {width: 2.5, color: "#2aa198"},
-                areaStyle: {color: "rgba(42, 161, 152, 0.16)"},
+                lineStyle: {width: 2.5, color: "#a6e22e"},
+                areaStyle: {color: "rgba(166, 226, 46, 0.16)"},
                 data: series.latency_series || [],
             },
             {
@@ -135,8 +141,8 @@ function renderChart(series) {
                 yAxisIndex: 1,
                 smooth: 0.22,
                 showSymbol: false,
-                lineStyle: {width: 2.2, color: "#b58900"},
-                areaStyle: {color: "rgba(181, 137, 0, 0.14)"},
+                lineStyle: {width: 2.2, color: "#f92672"},
+                areaStyle: {color: "rgba(249, 38, 114, 0.14)"},
                 data: series.packet_loss_series || [],
             }
         ]
