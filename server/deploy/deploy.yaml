@@ -42,6 +42,7 @@
         ansible_port: "{{ ssh_port | default(22) }}"
         ansible_ssh_private_key_file: "{{ ssh_key_file | default(omit) }}"
         ansible_ssh_pass: "{{ ssh_pass | default(omit) }}"
+        ansible_become_pass: "{{ ssh_pass | default(omit) }}"
         deploy_dir: "{{ deploy_dir }}"
         repo_dir: "{{ _repo_dir }}"
         server_dir: "{{ _server_dir }}"
@@ -135,7 +136,7 @@
       args:
         chdir: "{{ server_dir }}"
       environment:
-        PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
+        PATH: "{{ go_bin_path }}:{{ ansible_facts.env.PATH }}"
         HOME: "/home/{{ ansible_user }}"
       tags: [fresh]
 
@@ -144,7 +145,7 @@
       args:
         chdir: "{{ server_dir }}"
       environment:
-        PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
+        PATH: "{{ go_bin_path }}:{{ ansible_facts.env.PATH }}"
         HOME: "/home/{{ ansible_user }}"
         CGO_ENABLED: "1"
       tags: [fresh]
@@ -228,7 +229,7 @@
       args:
         chdir: "{{ server_dir }}"
       environment:
-        PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
+        PATH: "{{ go_bin_path }}:{{ ansible_facts.env.PATH }}"
         HOME: "/home/{{ ansible_user }}"
       tags: [update]
 
@@ -237,7 +238,7 @@
       args:
         chdir: "{{ server_dir }}"
       environment:
-        PATH: "{{ go_bin_path }}:{{ ansible_env.PATH }}"
+        PATH: "{{ go_bin_path }}:{{ ansible_facts.env.PATH }}"
         HOME: "/home/{{ ansible_user }}"
         CGO_ENABLED: "1"
       tags: [update]
