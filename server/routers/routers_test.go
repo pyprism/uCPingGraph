@@ -116,6 +116,59 @@ func TestNewRouterHealthzOK(t *testing.T) {
 	}
 }
 
+func TestNewRouterHealthzPingFailure(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db := routersTestDB(t)
+	models.SetDB(db)
+	t.Cleanup(func() { models.SetDB(nil) })
+	t.Chdir("..")
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatalf("get sql db: %v", err)
+	}
+	if err := sqlDB.Close(); err != nil {
+		t.Fatalf("close sql db: %v", err)
+	}
+
+	router := NewRouter()
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("expected 503 with unpingable DB, got %d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestNewRouterSetsReleaseModeWithoutDebugEnv(t *testing.T) {
+	t.Setenv("DEBUG", "")
+	models.SetDB(routersTestDB(t))
+	t.Cleanup(func() { models.SetDB(nil) })
+	t.Chdir("..")
+
+	_ = NewRouter()
+
+	if gin.Mode() != gin.ReleaseMode {
+		t.Fatalf("expected release mode when DEBUG is unset, got %s", gin.Mode())
+	}
+}
+
+func TestNewRouterKeepsDebugModeWhenDebugEnvSet(t *testing.T) {
+	gin.SetMode(gin.DebugMode)
+	t.Setenv("DEBUG", "True")
+	models.SetDB(routersTestDB(t))
+	t.Cleanup(func() { models.SetDB(nil) })
+	t.Chdir("..")
+
+	_ = NewRouter()
+
+	if gin.Mode() != gin.DebugMode {
+		t.Fatalf("expected debug mode when DEBUG=True, got %s", gin.Mode())
+	}
+}
+
 func TestNewRouterServesAPIRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	models.SetDB(routersTestDB(t))
