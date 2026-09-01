@@ -98,3 +98,54 @@ func TestShutdownDoesNotPanicWithoutInit(t *testing.T) {
 	// Should not panic even though Init was never called.
 	Shutdown()
 }
+
+func TestShutdownFlushesInitializedLogger(t *testing.T) {
+	logDir := filepath.Join(t.TempDir(), "logs")
+	t.Setenv("LOG_DIR", logDir)
+	t.Setenv("SENTRY_DSN", "")
+
+	Init()
+	t.Cleanup(func() {
+		mu.Lock()
+		L = nil
+		mu.Unlock()
+	})
+
+	// Should not panic when flushing a real logger and Sentry's (uninitialised) client.
+	Shutdown()
+}
+
+func TestInitWithInvalidSentryDSNLogsErrorInsteadOfPanicking(t *testing.T) {
+	logDir := filepath.Join(t.TempDir(), "logs")
+	t.Setenv("LOG_DIR", logDir)
+	t.Setenv("SENTRY_DSN", "not-a-valid-dsn")
+
+	Init()
+	t.Cleanup(func() {
+		mu.Lock()
+		L = nil
+		mu.Unlock()
+	})
+
+	if Get() == nil {
+		t.Fatal("expected logger to be initialised even when Sentry DSN is invalid")
+	}
+}
+
+func TestInitWithValidSentryDSNInitialisesSentry(t *testing.T) {
+	logDir := filepath.Join(t.TempDir(), "logs")
+	t.Setenv("LOG_DIR", logDir)
+	t.Setenv("SENTRY_DSN", "https://public@sentry.example.com/1")
+	t.Setenv("APP_ENV", "test")
+
+	Init()
+	t.Cleanup(func() {
+		mu.Lock()
+		L = nil
+		mu.Unlock()
+	})
+
+	if Get() == nil {
+		t.Fatal("expected logger to be initialised with a valid Sentry DSN")
+	}
+}
