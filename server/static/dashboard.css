@@ -103,6 +103,33 @@ body {
     color: var(--text-muted);
 }
 
+.site-footer {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+
+.site-footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.8rem;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.site-footer a:hover {
+    color: var(--accent);
+    border-color: var(--border);
+    background: var(--raised);
+}
+
 .eyebrow {
     margin: 0 0 8px;
     text-transform: uppercase;
