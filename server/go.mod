@@ -3,8 +3,8 @@ module github.com/pyprism/uCPingGraph
 go 1.26.0
 
 require (
-	github.com/getsentry/sentry-go v0.48.0
-	github.com/getsentry/sentry-go/gin v0.48.0
+	github.com/getsentry/sentry-go v0.49.0
+	github.com/getsentry/sentry-go/gin v0.49.0
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-contrib/gzip v1.2.6
 	github.com/gin-contrib/size v1.0.2
@@ -50,9 +50,9 @@ require (
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.23.0 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
-	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/text v0.39.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
