@@ -40,8 +40,8 @@ go run . device add
 
 ```bash
 cd client/esp
-platformio run -e nodemcuv2 -t upload
-platformio run -e esp32dev -t upload
+pio run -e nodemcuv2 -t upload
+pio run -e esp32dev -t upload
 ```
 
 See `server/README.md` and `client/esp/README.md` for details.
