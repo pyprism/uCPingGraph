@@ -409,8 +409,26 @@ void connectWiFi() {
     gShouldSaveConfig = false;
   }
 
+  WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
+
   Serial.print("Connected. IP: ");
   Serial.println(WiFi.localIP());
+}
+
+const uint8_t kQuickReconnectMaxAttempts = 5;
+const unsigned long kQuickReconnectTimeoutMs = 10000;
+
+bool quickReconnect() {
+  WiFi.reconnect();
+  const unsigned long start = millis();
+  while (millis() - start < kQuickReconnectTimeoutMs) {
+    if (WiFi.status() == WL_CONNECTED) {
+      return true;
+    }
+    delay(200);
+  }
+  return false;
 }
 
 void setup() {
@@ -445,9 +463,23 @@ void loop() {
   lastSentAt = now;
 
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi disconnected, reconnecting...");
+    static uint8_t consecutiveFailures = 0;
     setStatusLed(true);
-    connectWiFi();
+    Serial.println("WiFi disconnected, attempting quick reconnect...");
+    if (quickReconnect()) {
+      Serial.println("Quick reconnect succeeded");
+      consecutiveFailures = 0;
+      return;
+    }
+
+    consecutiveFailures++;
+    Serial.printf("Quick reconnect failed (%u/%u)\n", consecutiveFailures,
+                  kQuickReconnectMaxAttempts);
+    if (consecutiveFailures >= kQuickReconnectMaxAttempts) {
+      consecutiveFailures = 0;
+      Serial.println("Falling back to WiFiManager portal");
+      connectWiFi();
+    }
     return;
   }
 
