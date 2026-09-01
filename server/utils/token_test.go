@@ -1,6 +1,16 @@
 package utils
 
-import "testing"
+import (
+	"crypto/rand"
+	"errors"
+	"testing"
+)
+
+type failingReader struct{}
+
+func (failingReader) Read(p []byte) (int, error) {
+	return 0, errors.New("simulated crypto/rand failure")
+}
 
 func TestGenTokenLength(t *testing.T) {
 	for _, size := range []int{1, 8, 16, 32, 64} {
@@ -43,5 +53,19 @@ func TestGenTokenCharset(t *testing.T) {
 		if !charSet[tok[i]] {
 			t.Fatalf("GenToken produced invalid character: %c", tok[i])
 		}
+	}
+}
+
+func TestGenTokenReturnsErrorWhenRandReaderFails(t *testing.T) {
+	orig := rand.Reader
+	rand.Reader = failingReader{}
+	t.Cleanup(func() { rand.Reader = orig })
+
+	_, err := GenToken(8)
+	if err == nil {
+		t.Fatal("expected error when crypto/rand.Reader fails")
+	}
+	if got := err.Error(); got == "" {
+		t.Fatal("expected non-empty error message")
 	}
 }
